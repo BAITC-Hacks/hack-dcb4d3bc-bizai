@@ -1,4 +1,4 @@
-# BizAI deployment and CI/CD
+# CareerUp deployment and CI/CD
 
 Live URL: http://92.38.48.67
 

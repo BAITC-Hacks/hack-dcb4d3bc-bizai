@@ -10,7 +10,7 @@ The first slice (the six-route foundation from phases 1–3) now lives at the re
 
 ## Delivered
 
-- Reused the starter's button/card/badge/input primitives and palette, with Career Quest branding. The active app contains none of the old onboarding routes, browser store, Buddy, Python module, media, flowchart, chat/RAG, or sentiment logic.
+- Reused the starter's button/card/badge/input primitives and palette, with CareerUp branding. The active app contains none of the old onboarding routes, browser store, Buddy, Python module, media, flowchart, chat/RAG, or sentiment logic.
 - Six pages, three API handlers, server-only repository access, opaque SQLite sessions, and server role/employee scope checks.
 - Original data contracts with calendar/range/reference validation, CSV parsing, nullable blank cells, atomic merge imports, duplicate conflict handling and stale-preview protection.
 - Effective skill replay, explicit/cross-role/default targets, critical gaps, activity eligibility and real HR participation/gap aggregates.
@@ -43,7 +43,7 @@ These results belong to the foundation run; the localization run is recorded bel
 
 ## UI restoration
 
-The user requested retaining substantially more of the starter's look and layout. Restored its split landing/role-selector composition, patterned background, full-height grouped sidebar, account header, navy dashboard hero, grade rail, two-column cards, SVG donut, HR KPI cards and gap bars, and tabbed activity-card catalog. Navigation labels and contents use Career Quest; career/HR section shortcuts stay within the six routes. Mobile navigation is collapsible. That restoration did not modify the original checkout.
+The user requested retaining substantially more of the starter's look and layout. Restored its split landing/role-selector composition, patterned background, full-height grouped sidebar, account header, navy dashboard hero, grade rail, two-column cards, SVG donut, HR KPI cards and gap bars, and tabbed activity-card catalog. Navigation labels and contents use CareerUp; career/HR section shortcuts stay within the six routes. Mobile navigation is collapsible. That restoration did not modify the original checkout.
 
 Activity cards now use a compact tabletop-inspired frame: title/type band, duration badge, skill effects with caps, prerequisite chips, sessions, and eligibility footer. All details remain visible; no expansion control or reward/game logic was added.
 

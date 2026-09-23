@@ -1,6 +1,6 @@
 # Corporate career development: discovery questions
 
-Prepared 2026-09-23 for the Career Quest team. This is a discussion checklist, not a new specification or an approved SAP integration plan.
+Prepared 2026-09-23 for the CareerUp team. This is a discussion checklist, not a new specification or an approved SAP integration plan.
 
 ## Resolution after user feedback
 

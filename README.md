@@ -1,8 +1,8 @@
-# Career Quest · BizAI
+# CareerUp
 
 **Demo website:** [http://92.38.48.67](http://92.38.48.67)
 
-Employee development prototype built with Next.js, React and SQLite. Employees own their goals and plans, explore learning activities, and submit evidence for human review. Managers and HR can approve or return reviews; AI helps explain options but never sets ratings or promotes employees.
+CareerUp is an employee development prototype built with Next.js, React and SQLite. Employees own their goals and plans, explore learning activities, and submit evidence for human review. Managers and HR can approve or return reviews; AI helps explain options but never sets ratings or promotes employees.
 
 The supplied synthetic dataset contains **200 employees, 40 activities, 60 skills and 2,743 participation records**. Its business date is **2026-10-01**, independent of the server clock.
 

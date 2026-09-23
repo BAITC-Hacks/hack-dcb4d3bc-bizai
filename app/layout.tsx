@@ -5,7 +5,7 @@ import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
-  return { title: "Career Quest · BizAI", description: t("Employee development, skills and career trajectories") };
+  return { title: "CareerUp", description: t("Employee development, skills and career trajectories") };
 }
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

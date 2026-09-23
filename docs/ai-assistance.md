@@ -1,4 +1,4 @@
-# AI assistance in Career Quest
+# AI assistance in CareerUp
 
 Implemented 2026-09-23. One server-side OpenAI adapter serves three interfaces; no separate agent service or vector database is needed for this structured dataset.
 
