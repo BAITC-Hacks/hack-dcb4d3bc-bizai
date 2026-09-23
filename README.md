@@ -1,34 +1,70 @@
 # Career Quest · BizAI
 
-Employee development prototype using the supplied synthetic dataset: 200 employees, 40 activities, 60 skills, and 2,743 participation records.
+Employee development prototype built with Next.js, React and SQLite. Employees own their goals and plans, explore learning activities, and submit evidence for human review. Managers and HR can approve or return reviews; AI helps explain options but never sets ratings or promotes employees.
 
-## Run
+The supplied synthetic dataset contains **200 employees, 40 activities, 60 skills and 2,743 participation records**. Its business date is **2026-10-01**, independent of the server clock.
 
-Node.js **22.13+** is required for built-in SQLite. For a synthetic demo, one command installs dependencies, builds, and starts the app:
+> Demo identity only: anyone can select any employee or HR account on the public entry page. Server-side role checks do not establish a person's identity. Use synthetic data only.
 
-```sh
-npm run demo
-```
+## Quick start
 
-For development:
+Requires **Node.js 22.13+** and npm. Run from the repository root:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000) and choose an employee profile or the HR workspace. For a production build:
+Open [localhost:3000](http://localhost:3000), select an employee or HR, and enter the workspace. No external database or AI key is required for the core workflows.
+
+For a production-mode synthetic demo, one command installs, builds and starts:
+
+```sh
+npm run demo
+```
+
+Or build and start separately:
 
 ```sh
 npm run build
 npm start
 ```
 
-The app runs without an external service; live AI assistance needs `OPENAI_API_KEY` in `.env` or `.env.local`. The server loads fixtures from `case_source/case_1/career_quest_dataset/` on its first request and persists them in `.data/career-quest.sqlite`. Keep the supplied dataset directory available locally; no source data is in public assets. Optional settings are in [.env.example](.env.example); copy to `.env.local` when overriding paths. Set `COOKIE_SECURE=true` when serving over HTTPS. Dataset paths resolve relative to the root working directory.
+On first repository access, the app loads fixtures from `case_source/case_1/career_quest_dataset/` into `.data/career-quest.sqlite`. Existing databases are reused; changing fixture files does not reseed them automatically.
+
+Optional configuration:
+
+```sh
+# Only for a new local setup; preserve an existing .env.local.
+cp -n .env.example .env.local
+```
+
+Set `OPENAI_API_KEY` for live assistance. The key stays on the server; never use a `NEXT_PUBLIC_*` variable. Set `COOKIE_SECURE=true` when serving over HTTPS. See [setup and operations](docs/getting-started.md) for every setting, isolated demo data, troubleshooting and validation.
+
+## Workspaces
+
+| Route | What works |
+| --- | --- |
+| `/` | Public employee/HR account picker and language selector |
+| `/employee/dashboard` | Overview, goals/milestones, advisor, skill evidence and learning history through `?view=` |
+| `/employee/learning` | Search/filter catalog, activity detail, add to plan and demo completion |
+| `/employee/reviews` | Self-assessment drafts/submission; direct-report reviews for managers |
+| `/hr/dashboard` | Profile search, target-gap prevalence and participation aggregates |
+| `/hr/employees/[id]` | Read-only employee plans, AI discussion briefs, review approval/return |
+| `/hr/data` | Preview/apply employee JSON and history CSV imports; fixture reset |
+
+English, Russian and Kazakh are available through **ENG / РУС / ҚАЗ**. Switching language reloads the current URL; save edits first. Supplied catalog text is translated, while unknown imported free text stays verbatim.
+
+## What progress means
+
+- **Plan:** employee intentions, milestones and claimed evidence. Changing a milestone does not increase skills.
+- **Effective skills:** assessed baseline plus eligible completed-activity gains, respecting caps and per-skill assessment cutoffs.
+- **Formal modules:** target requirements met by human-approved skill baselines, or imported assessments when no approval exists. Learning alone cannot close a module.
+- **Grade:** recorded employment data. No workflow automatically promotes an employee.
+
+A missing goal remains unset. An optional next-grade preview becomes a target only after the employee saves a role-linked focus. Free-form goals work for planning; catalog-based recommendations and quarterly reviews need a supported role/grade target.
 
 ## Docker
-
-Build from the repository root and run a synthetic demo with a persistent SQLite volume:
 
 ```sh
 docker build -t career-quest:local .
@@ -40,59 +76,14 @@ docker run -d --name career-quest \
   career-quest:local
 ```
 
-Run the existing type, lint, unit, and HTTP checks inside the build environment:
+The image includes fixtures and runs Next.js standalone as UID/GID 1000. Persist the **entire writable `/app/.data` directory**, including SQLite WAL files. Use one application replica with its own volume. PostgreSQL and MinIO are not integrated. For Kubernetes use `Recreate`; an image rollback does not roll back database contents.
 
 ```sh
+# Builds the application and executes the checked-in validation suites.
 docker build --target test -t career-quest:test .
 ```
 
-Open `http://localhost:3000`. The image uses Node 22, Next.js standalone output,
-and the non-root `node` user (UID/GID 1000). Runtime fixtures are included in the
-image; `.env` files, local databases, and Git metadata are excluded. The HTTP
-health check requests the entry page, including a database read.
-
-The entire `/app/.data` directory must remain writable and persistent, including
-SQLite WAL files. For bind mounts or Kubernetes PVCs, give UID/GID 1000 write
-access (for example, Kubernetes `fsGroup: 1000`). Run one application replica
-with its own SQLite volume; PostgreSQL and MinIO are not integrated in this
-version. Do not mount the PostgreSQL or MinIO data directories into this app.
-For Kubernetes, use `Recreate` deployment strategy when attaching this single
-SQLite volume, and configure HTTP probes on port 3000.
-
-Runtime settings can be passed with `docker run -e KEY=value` or an env file:
-
-| Variable | Container default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3000` | HTTP listen port; update the port mapping if changed |
-| `HOSTNAME` | `0.0.0.0` | Listen on container interfaces |
-| `DATABASE_PATH` | `/app/.data/career-quest.sqlite` | Persistent SQLite file |
-| `DATASET_DIR` | `/app/case_source/case_1/career_quest_dataset` | Seed/reset fixtures |
-| `COOKIE_SECURE` | `false` | Set `true` when the external URL uses HTTPS |
-
-If building on an Apple Silicon Mac for an AMD64 server, use
-`docker buildx build --platform linux/amd64 --load -t career-quest:local .`.
-
-## Implemented
-
-| Route | Behavior |
-| --- | --- |
-| `/` | Employee/HR account picker |
-| `/employee/dashboard` | Persistent goals and milestones, assessment modules, effective skills, history, AI development assistant |
-| `/employee/reviews` | Quarterly self-assessment drafts/submissions, preserved revisions, scoped direct-report inspection |
-| `/employee/learning` | Real activity catalog, prerequisites, sessions, eligibility reasons, AI activity explanations |
-| `/hr/dashboard` | Searchable profiles, target-gap prevalence, participation by status |
-| `/hr/employees/[id]` | Read-only employee inspection and AI development discussion briefs |
-| `/hr/data` | Validate/preview/apply jury profiles and history, dataset counts, reset |
-
-Employee access is checked on the server for pages and APIs. SQLite-backed opaque sessions separate `accessRole` from the employee's job role and expire after eight hours. The public account picker requires no access token; anyone can select an employee or HR account, so use only synthetic data. Previously issued credential sessions are rejected. Use HTTPS and `COOKIE_SECURE=true` when serving over HTTPS.
-
-Imports accept the original employee JSON envelope and history CSV columns, together or separately. New IDs merge; identical records are unchanged; conflicting duplicates fail. References are validated against the merged dataset. Preview revisions prevent stale writes, and SQLite transactions prevent partial imports. Limits: 2 MB per file in the UI, 5 MB per API request. Reset restores the supplied fixtures and discards imports, personal plans and their action records. Review revisions remain stored under an inactive dataset scope and are not exposed as current reviews after reset.
-
-The business date is `meta.as_of_date` (`2026-10-01`). Effective skills replay completed activity after `last_review_date`; a cap never lowers an assessed skill. Historical CSV `date` is a completion-time proxy, including self-paced enrollment dates, because exact completion timestamps are unavailable. Formal module coverage counts requirements met by the latest human-approved per-skill baseline (or imported assessment when none exists) / all requirements. This explicitly accepts source assessments as the initial prototype evidence; it does not fabricate a manager approval. Course gains can indicate reassessment is needed but cannot close a module. Missing goals remain unset. When a next grade exists in the same role, the UI offers a labeled preview of its requirements and a draft-goal action; the employee must review and save it before it becomes the recommendation target. No promotion or goal is applied automatically.
-
-Employees can save multiple free-form goals, select a focus and optionally map it to a supplied role/grade. Milestones have an outcome, success criterion, actions, evidence and editable state/order. They are employee claims, not skill gains. Plans live separately in SQLite; each save checks dataset and plan revisions and atomically records the actor and before/after state. HR can inspect plans but cannot overwrite them. `POST /api/planning` is employee-only; `GET /api/employees/[id]` now includes the scoped planning state. Its `development.target` and `development.coverage` are nullable when no role target exists, and `coverage` now means closed-module percentage.
-
-Quarterly reviews use the saved role-linked focus and default to the last completed quarter on the dataset clock. Every required target skill needs a 0–5 self-rating and a nonblank business justification before submission. Submitted requirements and evidence are frozen; reopening creates an editable revision. Managers enter through their normal employee account and see only direct reports on the review page. HR or the current direct line manager can approve or return a submitted review. Approval requires explicit final ratings for every reviewed skill and a comment; return requires a comment. AI calibration is explicitly marked as not run. Approval updates reviewed skill baselines and module coverage, but never promotes an employee. Proficiency descriptions are preserved from `skills.json` in newly loaded datasets. Older stored datasets without that field show a missing-scale notice rather than invented descriptions.
+For an AMD64 server when building on Apple Silicon, use `docker buildx build --platform linux/amd64 --load -t career-quest:local .`. Deployment manifests, CI behavior and recovery commands are in [the deployment runbook](deploy/README.md); its recorded live state is not a fresh deployment verification.
 
 ## Validate
 
@@ -107,33 +98,20 @@ npm run test:reviews
 npm run test:identity
 ```
 
-The HTTP suite launches a separate server on port 3101 with a temporary database. Override `SMOKE_PORT` if occupied. It checks six pages, all 200 profile API reads, cross-employee/HR denial, cross-origin denial, preview/import/re-import/reset, and retired routes. Unit tests cover replay, goals, CSV parsing, import conflicts, SQLite persistence and stale writes. The review HTTP suite uses port 3105 (`REVIEW_SMOKE_PORT` override) and checks the new review page in all three languages, manager scope, required justifications, immutable submissions, retries and reset isolation.
+Build before the HTTP suites: they run `next start` against temporary SQLite databases. The AI suite explicitly disables the provider and does not establish live model quality. Ports and overrides are in [the validation guide](docs/getting-started.md#validation).
 
-## Remaining
+## Documentation
 
-The next slice is justified quarterly self-assessment → advisory calibration → manager approval/return → grade modules. Review drafts/submissions and scoped direct-manager access are implemented. HR/current-manager approval and return, with approved per-skill assessment cutoffs, are implemented. AI calibration, arbitrary natural-language constraint handling and a unified action timeline remain. Demo completion writes are implemented separately. HR tasks/resources and full dataset replacement follow. One-command synthetic-demo startup is available through `npm run demo`. The original recommendation path stays usable without requiring a new quarterly review. Production SSO is deferred.
+| Guide | Contents |
+| --- | --- |
+| [Documentation index](docs/README.md) | Current guides versus historical plans/reviews |
+| [Setup and operations](docs/getting-started.md) | Configuration, validation, persistence, imports and troubleshooting |
+| [Architecture](docs/architecture.md) | Components, storage, authorization, API surface and consistency rules |
+| [UX](docs/ux.md) | Navigation, progress semantics, empty/error states and localization |
+| [User flows](docs/user-flows.md) | Employee, manager and HR walkthroughs with expected outcomes |
+| [AI assistance](docs/ai-assistance.md) | Evidence, consultation, streaming, adoption and provider boundaries |
+| [Implementation status](docs/implementation-status.md) | Current capability summary and historical delivery evidence |
 
-AI assistance now runs on demand from the development page, catalog and HR employee view. The server sends scoped evidence to OpenAI, validates returned choices and citations, and saves conversations and evidence in SQLite. Goal drafts require explicit employee adoption. `OPENAI_MODEL` defaults to `gpt-4.1-mini`; requests have an 8.5-second provider budget and a visible fallback. The key stays server-side. See [AI features and boundaries](docs/ai-assistance.md).
+Still pending: production SSO, AI review calibration, arbitrary natural-language constraint filtering, a unified action timeline, HR-authored tasks/resources and full dataset replacement. Demo completions, review approval/return, structured duration/format preferences and Docker packaging are implemented.
 
-The app uses Next 15.5.26 / React 19.1.9. PostCSS is explicitly overridden to the patched root dependency; retain this until the framework's bundled dependency no longer needs it. See the [official Next.js release/security announcements](https://nextjs.org/blog).
-
-- [Implementation status](docs/implementation-status.md)
-- [Repository context](docs/repo-context.md)
-- [Current delivery plan](docs/next-stage-plan.md)
-- [Quarterly review findings and requirements](docs/quarterly-review-requirements.md)
-- [Product memo for the team — Russian](docs/product-memo.ru.md)
-- [AI integration and future entry points](docs/ai-assistance.md)
-
-## Languages
-
-Use the **ENG / РУС / ҚАЗ** selector on the entry page or workspace header. English is the default. The selected locale (`en`, `ru`, `kk`) persists in a one-year `career_quest_locale` cookie and applies to server pages, interactive controls, document language, dates, and numbers. Switching reloads the current URL, preserving its route, filter query, and section anchor. Save plan edits before switching; unsaved edits and file selections are lost on reload.
-
-The supplied 40 activity titles/descriptions, 60 skill names, roles, departments, grades, and participation labels have Russian and Kazakh translations. IDs, names, JSON/CSV schemas and stored records remain unchanged. New jury free text without a dictionary entry remains verbatim; no external translation service is called. Structured diagnostic details retain their original text beneath localized import error summaries.
-
-Translation entries live in `lib/i18n/messages.json`. Add both `ru` and `kk` entries when introducing new interface text. `npm test` verifies supplied catalog coverage; `npm run test:http` checks all six pages in all three languages, locale fallback, and localized HR search.
-
-## Case-source compliance fixes
-
-Recommendations always display current grade, saved target requirements, prospective gap reduction and related participation. Related history includes activities sharing skills, even when those activities are excluded from the shortlist; aggregate counts use all records and source samples are bounded. Published comparisons use catalog and participation facts, never unchecked model assertions. Ready coaching with no clarification question must return 1–3 recommendations. Provider failure is still explicitly reported as an unavailable result; no live AI quality guarantee follows from unit tests.
-
-`POST /api/completions` now requires `commandId` (UUID). Reuse it after a network failure; generate a new one for a new completion occurrence. EV_036 supports repeated occurrences up to its catalog cap, while other completed events remain ineligible. SQLite automatically migrates existing completion records without changing their IDs or duplicating gains.
+Versions and scripts are maintained in [package.json](package.json). The Next.js PostCSS override is deliberate; review it when upgrading the framework rather than removing it incidentally.

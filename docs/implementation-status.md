@@ -1,8 +1,10 @@
 # Implementation status — 2026-09-23
 
-**Delivery update:** persistent goals/milestones and assessment-based module counts are implemented. An on-demand AI assistant now supports employee goals, activity explanations and HR development briefs, with source-rendered factual statements and explicit goal adoption. Quarterly reviews, manager capabilities and the full consultation constraint/state machine remain pending. Details and validation are at the end of this document.
+**Current snapshot (2026-09-23):** goals/milestones, effective-skill replay, assessment-based modules, structured consultation preferences, advisor chat/widget, demo completions, quarterly review revisions, direct-manager access, HR/manager approval and return, trilingual UI, imports/reset and Docker/CI packaging are implemented. AI calibration, arbitrary natural-language constraint filtering, a unified action timeline, HR-authored tasks/resources, full dataset replacement and production SSO remain pending.
 
-The subsequent [quarterly review extension](quarterly-review-requirements.md) adds justified self-assessments, advisory calibration, scoped manager approval and formal grade modules. Approval updates reviewed skills only; insufficient evidence is an allowed verdict; module closure does not change the recorded grade. These workflows are also not implemented.
+For current behavior use the [documentation index](README.md), [architecture](architecture.md) and [user flows](user-flows.md). The sections below are a chronological delivery log: “pending,” route counts and validation totals describe each historical slice, and may be superseded by later sections. They are not fresh validation results.
+
+## Historical delivery log
 
 The first slice (the six-route foundation from phases 1–3) now lives at the repository root, committed as `3d34cb4`; UI/localization followed in `8a04d07`. The original nested checkout was initially retained as a local reference and is now absent from the workspace. It is not an application dependency, submodule, or import target. Future staging must use explicit root application/documentation paths, never `git add .` or `git add -A`.
 

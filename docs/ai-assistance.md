@@ -9,8 +9,8 @@ Implemented 2026-09-23. One server-side OpenAI adapter serves three interfaces; 
 | Employee development page | Clarify an aspiration, draft a goal, explain critical gaps, compare useful activities | Employee accepts a goal draft; code checks targets, eligibility, gain caps and revisions | Implemented |
 | Activity catalog | Explain a selected activity, its prerequisites and relevant alternatives | Explain excluded activities without enrolling or recommending them | Implemented |
 | HR employee profile | Draft a development discussion brief and evidence questions | Read-only advice; no employee ranking, rating or employment decision | Implemented |
-| Quarterly self-assessment | Improve the clarity of a business justification, challenge missing proof, return advisory calibration | Preserve the employee's wording; never fabricate outcomes or set final ratings | Next: review records and read-only manager scope now exist; calibration is pending |
-| Manager review | Compare self-rating, calibrated opinion and accepted evidence; draft discussion points | A human sets the final rating and approval | Depends on review workflow |
+| Quarterly self-assessment | Improve the clarity of a business justification, challenge missing proof, return advisory calibration | Preserve the employee's wording; never fabricate outcomes or set final ratings | Review records and human approval/return are implemented; AI calibration is pending |
+| Manager review | Compare self-rating, calibrated opinion and accepted evidence; draft discussion points | A human sets the final rating and approval | Human decisions implemented; AI review assistance pending |
 | HR task authoring | Draft an outcome, skill links and evidence criteria | HR validates and publishes; code validates catalog references and contributions | Depends on task definitions/assignments |
 | Dataset initialization | Explain validation failures in ordinary language | Parsing, reference checks, atomic activation and skill arithmetic stay in code | Optional later enhancement |
 
