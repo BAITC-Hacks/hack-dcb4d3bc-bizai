@@ -1,4 +1,4 @@
-# Next stage: explainable development plans
+# Next stage: explainable assessment and development
 
 Review date: 2026-09-23. This is the current delivery sequence, updated for the subsequent quarterly-assessment request. The [product direction](prototype-product-direction.md) and [quarterly review requirements](quarterly-review-requirements.md) define intended behavior; the [explainability design](explainability-design.md) defines evidence and agent boundaries. The separate [Russian team memo](product-memo.ru.md) summarizes product features.
 
@@ -21,10 +21,10 @@ The immediate dependency is the assessment/evidence contract and manager access,
 | Durable consultation/audit state is absent | `lib/server/database.ts` currently creates dataset and session tables | Add the minimum persistent goal, plan, consultation, decision and action records needed for the loop. |
 | AI and completion are not implemented | No relevant API handlers; the UI explicitly shows `Not generated` | These are the central next-stage deliverables, not optional UI enhancements. |
 | Quarterly reviews and manager permissions are new | The actor type has only employee/HR; there are no review/approval records | Add direct-report access, review revisions, per-skill observations and explicit evidence cutoffs before approval writes. |
-| Older sequencing is stale | Some older documents describe phases 1–3 as future work | Use this plan for current ordering. |
-| Latest UI/localization changes are in the working tree | Locale modules, dictionaries, page changes and a new locale test | Preserve them. Recheck compatibility during integration; this review does not certify their runtime behavior. |
+| Earlier sequencing is stale | Some older documents describe phases 1–3 as future work | Use this plan for current ordering. |
+| UI/localization is delivered separately | Commit `8a04d07` contains locale modules, dictionaries, page changes and locale tests | Reuse it and check compatibility when adding review screens; this document review does not certify runtime behavior. |
 
-The old status sentence saying nothing had been committed was stale; the foundation has a commit. Earlier verification results describe the foundation run, not a fresh test of today's working tree.
+The old status sentence saying nothing had been committed was stale and is corrected. Implementation status records separate foundation and localization verification runs; neither is a test of the proposed review workflows.
 
 ## Ordered delivery slices
 

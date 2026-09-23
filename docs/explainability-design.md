@@ -2,7 +2,9 @@
 
 Status: agreed explainability architecture, extended by the latest [prototype product direction](prototype-product-direction.md). Goals are arbitrary and employee-owned; critical role gaps apply when relevant. Plans use editable milestones, HR can view development records and add suggestions, and cross-role mobility is supported. No application code has been changed as part of this discussion.
 
-The product core is an explainable decision grounded in an uploaded dataset, with a visible record of changes and their consequences. UI trimming should follow a proof that this core works.
+The product core is an explainable decision grounded in an uploaded dataset, with a visible record of changes and their consequences. The root UI foundation now exists; [the next-stage plan](next-stage-plan.md) defines the current delivery order.
+
+The later [quarterly review requirements](quarterly-review-requirements.md) extends this evidence contract to employee self-ratings, advisory calibration and manager decisions. Store all three opinions separately from computed activity gains. Approval updates only reviewed skills with per-skill cutoffs; `insufficient_evidence` is valid; grade-module closure indicates eligibility for a human promotion decision. A recorded event makes a change auditable, but does not by itself make an LLM claim true.
 
 ## Confirmed boundaries and prototype scope
 
@@ -166,8 +168,10 @@ The readiness checklist and blocker list can be visible in the same evidence pan
 
 Prototype defaults that do not need further architecture decisions: recalculate automatically after a confirmed action; do not automatically enroll people or assert completion; allow a missing-evidence/no-useful-step result; store the published answer and its evidence; provide one source/decision panel instead of a separate observability product. Attribution of self-reports must be preserved when correcting them.
 
-## Proposed proof before trimming
+## Next proof: development and assessment loops
 
 Use an isolated test dataset and an employee not hard-coded in application logic. Verify import → missing-goal question → attributed answer → readiness check → candidate comparison → claim-level evidence → completion command → refreshed gaps → revised decision. Include an already-known goal (no redundant question), an unanswered material question (no premature recommendation), a repeated command, an invalid reference, and a concurrent dataset-version change. Keep model quality tests distinct from deterministic arithmetic/access/import tests.
 
-The next implementation slice should exercise this readiness contract and one complete decision example before investing in route cleanup or UI polish. Extend the proof with an arbitrary goal, milestone edits, a disclosed target-context career transition, an attributed HR suggestion, and a useful response when no supported activity exists. Mock testing remains optional; no assessment claim is valid without its explicit rubric and result evidence.
+The next implementation slice should exercise this readiness contract and one complete decision example. Extend the proof with an arbitrary goal, milestone edits, a disclosed target-context career transition, an attributed HR suggestion, and a useful response when no supported activity exists. Automated mock skill testing remains optional; no test-derived assessment claim is valid without its explicit rubric and result evidence.
+
+Add one quarterly submission → calibration/challenge → manager return/resubmit/approve → module update → next-step example. Preserve the original development path for profiles without a new review. Calibration disagreement can lead to evidence collection rather than training; a self-rating or LLM verdict cannot change an approved skill. The detailed contracts and acceptance cases are in the quarterly review requirements.

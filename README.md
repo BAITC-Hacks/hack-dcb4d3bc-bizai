@@ -37,6 +37,8 @@ Imports accept the original employee JSON envelope and history CSV columns, toge
 
 The business date is `meta.as_of_date` (`2026-10-01`). Effective skills replay completed activity after `last_review_date`; a cap never lowers an assessed skill. Historical CSV `date` is a completion-time proxy, including self-paced enrollment dates, because exact completion timestamps are unavailable. Target coverage is capped achieved requirement units / required units, not promotion probability. An absent goal defaults to the next grade; Leads without goals show current-role requirements and an unset-goal notice.
 
+These are current foundation behaviors. The agreed next stage removes the automatic next-grade goal, introduces employee-owned plans and separates self-ratings, approved assessments and activity-derived progress. Formal grade progress will count closed modules; manager approval will update reviewed skill baselines only. See [the delivery plan](docs/next-stage-plan.md).
+
 ## Validate
 
 ```sh
@@ -51,12 +53,15 @@ The HTTP suite launches a separate server on port 3101 with a temporary database
 
 ## Remaining
 
-AI recommendations, enrollment/completion writes, recommendation invalidation, complete HR missing-step classification, and Docker launch remain phases 4–5. The UI labels recommendations as **Not generated**. No model calls or data transmission to an external AI service are implemented. Production SSO is deferred.
+The next slice is justified quarterly self-assessment → advisory calibration → manager approval/return → grade modules → a grounded next step. Persistent goals/plans, manager access, per-skill assessment cutoffs, AI recommendations, completion writes and decision audit are still to implement. HR tasks/resources, full dataset replacement and one-command packaging follow. Preserve the original import/recommend/complete demo without requiring a new quarterly review. The UI labels recommendations as **Not generated**; no model calls or data transmission to an external AI service are implemented. Production SSO is deferred.
 
 The app uses Next 15.5.26 / React 19.1.9. PostCSS is explicitly overridden to the patched root dependency; retain this until the framework's bundled dependency no longer needs it. See the [official Next.js release/security announcements](https://nextjs.org/blog).
 
 - [Implementation status](docs/implementation-status.md)
 - [Repository context](docs/repo-context.md)
+- [Current delivery plan](docs/next-stage-plan.md)
+- [Quarterly review findings and requirements](docs/quarterly-review-requirements.md)
+- [Product memo for the team — Russian](docs/product-memo.ru.md)
 
 ## Languages
 

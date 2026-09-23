@@ -2,6 +2,8 @@
 
 Confirmed by the user on 2026-09-23. This supersedes conflicting proposals in the earlier corporate discovery checklist. It records product decisions and implementation guidance; the full behavior described here is not implemented yet.
 
+**Subsequent extension:** [quarterly review requirements](quarterly-review-requirements.md) adds justified self-assessments, advisory calibration, manager approval and formal grade modules. Approval affects reviewed skills only; calibration may return `insufficient_evidence`; closed modules indicate eligibility for a separate promotion decision. The requested closed-module ratio is an exception to the earlier percentage restriction for formal grade roadmaps. Arbitrary goals and employee-owned plans remain supported. Use [the next-stage plan](next-stage-plan.md) for delivery order and [the Russian memo](product-memo.ru.md) for the team overview.
+
 ## Purpose
 
 Make development decisions understandable: what the system knows, what it does not know, why it suggests an action, how the employee can change it, and what happens afterward. Explainability, visibility and observability are the product core. SAP SuccessFactors is inspiration only; integration, parity and certification are outside the prototype scope.
@@ -14,7 +16,7 @@ Use natural language to make the evidence readable. Every material recommendatio
 | --- | --- |
 | Goals | Employees can create arbitrary goals, accept suggestions, edit goals or change direction. A role/grade target is optional. |
 | Plan ownership | The system and HR can suggest plans. The employee can change, reorder, remove, pause or replace milestones and actions at will. |
-| Progress | Use meaningful milestones and their evidence, not aggregate readiness percentages. |
+| Progress | Personal plans use meaningful milestones and evidence. Formal grade roadmaps additionally show closed required modules / all required modules, with critical blockers; neither indicates promotion probability. |
 | Skill evidence | Use the supplied mock assessments and event-gain rules for the initial prototype. Preserve their provenance and limitations. |
 | HR | Authorized HR can view all employee development information held by the prototype and add attributed recommendations. |
 | Career mobility | Cross-role exploration and changes of direction are first-class. Existing skill evidence transfers across goals. |
@@ -42,7 +44,7 @@ User-authored milestones and HR suggestions can be retained even when they have 
 
 For role-linked goals, use actual target requirements and critical gaps. For other goals, explain the supported link from an action to the employee's stated criterion, and identify any unverified part. The original jury role-profile scenarios must still satisfy their multi-factor explanation requirement; never invent a next-grade requirement just to fill an explanation slot for an unrelated goal.
 
-## Milestones instead of percentages
+## Personal milestones and formal grade modules
 
 A milestone describes an outcome, what counts as reaching it, and the evidence available. It is not merely a renamed course. Several activities may contribute to one milestone; one activity may contribute to several milestones.
 
@@ -56,6 +58,8 @@ Proposed milestone information:
 - Attribution of any manual completion claim.
 
 Show ordinary-language labels such as “Already demonstrated,” “Next step,” “Evidence needed” and “No matching activity available.” Keep per-skill levels and gaps available as evidence. Course `completion_pct` remains part of the import contract; the rejected percentage is the aggregate career-readiness indicator.
+
+The later quarterly-review request introduces a separate formal module for each required skill of a chosen role/grade. Its completion depends on accepted assessment evidence, not a personal checkbox or course completion alone. The module-count ratio is allowed; it does not restore the old formula based on partial skill coverage. Formal requirements cannot be edited away by changing a personal plan.
 
 An employee can edit the plan at will. Edits cannot rewrite imported history or create assessed skills. If a removed step was a prerequisite, explain the affected milestones and recompute supported options. Reordering a list does not satisfy a prerequisite. Replanning proposes changes; it must not silently restore a step the employee removed.
 

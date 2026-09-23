@@ -2,21 +2,23 @@
 
 Analysis date: 2026-09-23. This document records the supplied requirements, data, and starter implementation.
 
-**Current status:** this is the pre-implementation analysis. A cleaned root application now implements the first foundation slice; see [implementation status](implementation-status.md). The original nested checkout remains untouched and local-only.
+**Current status:** this is the pre-implementation analysis. A cleaned root application now implements the first foundation slice; see [implementation status](implementation-status.md). The original nested checkout is no longer present in the current workspace; starter observations below are historical and their paths are retained as provenance, not live links.
 
 Recommendation: reuse the KMG app's layout and UI primitives, then replace its onboarding domain with Career Quest. The required recommendation engine is not present in the starter.
 
-Latest design priority: dataset-grounded explainability is the product core. establish whether initialization can turn a judge's upload into traceable evidence, and whether event-driven state changes can keep that evidence current. See [explainability-design.md](explainability-design.md) for the feasibility findings and open decisions.
+Latest design priority: dataset-grounded explainability is the product core. Initialization must turn a judge's upload into traceable evidence, and domain changes must keep that evidence current. See [explainability-design.md](explainability-design.md) for feasibility findings and [the next-stage plan](next-stage-plan.md) for work following the delivered foundation.
 
 Confirmed recommendation policy: career goals and critical gaps first. The agent must ask for a missing goal and any material missing context, record attributed answers through validated handlers, and pass an explicit readiness check before recommending. Keep this as one agent and a small persisted state in the prototype.
 
 **Latest product decisions:** [prototype product direction](prototype-product-direction.md) is authoritative for employee-owned arbitrary goals, editable milestone plans (no aggregate readiness percentage), full HR visibility into development records and attributed suggestions, cross-role mobility with transferable skill evidence, and an optional mock assessment path. SAP is inspiration only. Apply role critical gaps when relevant to the chosen goal; do not force every goal into a role/grade. These decisions supersede earlier conflicting proposals and are not yet fully implemented.
 
+The subsequent [quarterly review extension](quarterly-review-requirements.md) adds manager-scoped assessment and a formal grade roadmap with a closed-module count ratio. This is a specific exception to the earlier percentage restriction. Approved ratings, self-ratings and activity-derived skills remain distinct; promotion is a separate human decision. The original brief below remains historical source context.
+
 ## Sources and authority
 
 - The Career Quest DOCX in `case_source/` is the current brief. Its Career Quest sections 5–9 define the output, required behavior, jury imports, and constraints.
 - [Dataset README](../case_source/case_1/career_quest_dataset/README.md) defines the data contract. The JSON/CSV files are the actual inputs.
-- [Starter README](../KMG-Hackathon/README.md) describes the existing onboarding demo. Source code takes precedence where its documentation differs from implementation.
+- The original `KMG-Hackathon/README.md` described the onboarding demo. Starter sources were inspected during the initial analysis; they are no longer available at that path in this workspace.
 - `KMG-Hackathon/ТЗ_Онбординг_KMG_Digital.docx` is the previous project's specification. Its Bitrix, Active Directory, culture nudges, and 90-day onboarding requirements do not apply to Career Quest.
 - The supplied brief mentions Voice Router as a separate case. It is outside this plan.
 
@@ -132,16 +134,16 @@ AI fallback: browser -> lib/rag.ts -> seeded knowledge articles
 
 ### Reuse limits
 
-- [Types](../KMG-Hackathon/lib/types.ts): `User` has no grade, skills, review date, or career goal. `ActivityEvent` is an audit-feed message, not a dataset participation record.
-- [Store](../KMG-Hackathon/lib/store.tsx): course completion updates sections, notifications, onboarding items, and logs. It has no skill-gain or career-progress calculation.
-- [AI route](../KMG-Hackathon/app/api/chat/route.ts): accepts a question, keyword-ranks culture cards, and prompts a KMG policy assistant. It receives no employee profile/history/grade requirements. Changing its branding cannot turn it into the required recommender.
-- [App shell](../KMG-Hackathon/components/shell/app-shell.tsx): access checks redirect in the browser. All users' data remains available in browser state. This does not meet server-enforced privacy.
-- [Sentiment](../KMG-Hackathon/lib/sentiment.ts): metrics are pseudo-random values seeded by user ID, rather than analysis of participation or messages.
-- [HR reports](../KMG-Hackathon/app/hr/reports/page.tsx): mixes ticket-derived metrics with fixed deltas and `state.activity.length * 3` for RAG volume. Reuse chart rendering, replace metric definitions.
-- [Document upload helper](../KMG-Hackathon/lib/store.tsx): `addVectorDoc` saves metadata only. It neither reads a document nor changes AI context. It cannot serve as the jury import workflow.
+- Types (`KMG-Hackathon/lib/types.ts`): `User` has no grade, skills, review date, or career goal. `ActivityEvent` is an audit-feed message, not a dataset participation record.
+- Store (`KMG-Hackathon/lib/store.tsx`): course completion updates sections, notifications, onboarding items, and logs. It has no skill-gain or career-progress calculation.
+- AI route (`KMG-Hackathon/app/api/chat/route.ts`): accepts a question, keyword-ranks culture cards, and prompts a KMG policy assistant. It receives no employee profile/history/grade requirements. Changing its branding cannot turn it into the required recommender.
+- App shell (`KMG-Hackathon/components/shell/app-shell.tsx`): access checks redirect in the browser. All users' data remains available in browser state. This does not meet server-enforced privacy.
+- Sentiment (`KMG-Hackathon/lib/sentiment.ts`): metrics are pseudo-random values seeded by user ID, rather than analysis of participation or messages.
+- HR reports (`KMG-Hackathon/app/hr/reports/page.tsx`): mixes ticket-derived metrics with fixed deltas and `state.activity.length * 3` for RAG volume. Reuse chart rendering, replace metric definitions.
+- Document upload helper (`KMG-Hackathon/lib/store.tsx`): `addVectorDoc` saves metadata only. It neither reads a document nor changes AI context. It cannot serve as the jury import workflow.
 - Locale/theme support exists, but many pages contain hard-coded Russian text. Three language options do not mean complete localization.
 
-## Repository and verification status
+## Repository and verification status at initial analysis
 
 - Outer repository has one commit, `fb60056`, and a short README. At analysis start, `KMG-Hackathon/` and `case_source/` were untracked in it.
 - `KMG-Hackathon/` is a clean nested Git repository at `2cc991e` with 120 tracked files. Preserve provenance before deciding how to bring its files into the team repository. A casual `git add KMG-Hackathon` risks recording a gitlink instead of the application source.

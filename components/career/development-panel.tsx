@@ -1,3 +1,4 @@
+import { DevelopmentFlow } from "./development-flow";
 import { getI18n } from "@/lib/i18n/server";
 import { Compass, Target, CheckCircle2, Sparkles, ArrowUpRight } from "lucide-react";
 import { Donut } from "@/components/charts/donut";
@@ -19,9 +20,10 @@ export async function DevelopmentPanel({ employee, data }: { employee: Employee;
       <div className="grid grid-cols-3 gap-3 self-end">{[[`${result.coverage}%`, t("Skill coverage")], [history.filter(row => row.status === "completed").length, t("Completed")], [employee.tenure_months, t("Months here")]].map(([value,label]) => <div key={label} className="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur"><p className="text-[10px] uppercase tracking-widest text-white/65">{label}</p><p className="mt-2 text-2xl font-semibold">{typeof value === "number" ? formatNumber(value) : value}</p></div>)}</div></div>
     </div>
     <div className="grid gap-3 sm:grid-cols-4" aria-label={t("Current and target grade")}>{grades.map((grade, index) => <div key={grade} className={`rounded-2xl border p-4 ${grade === employee.grade ? "border-brand-gold bg-brand-gold/5" : "border-brand-mist bg-white"}`}><div className="flex items-center justify-between"><span className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${grade === employee.grade ? "bg-brand-gold text-white" : "bg-brand-mist text-brand-navy"}`}>{index+1}</span>{grade === employee.grade && <Badge variant="gold">{t("Current")}</Badge>}{grade === result.target.target_grade && grade !== employee.grade && <Badge variant="navy">{t("Target")}</Badge>}</div><p className="mt-3 text-sm font-semibold">{t(grade)}</p></div>)}</div>
+    <DevelopmentFlow current={{ role: employee.role, grade: employee.grade }} target={{ role: result.target.target_role, grade: result.target.target_grade }} gaps={result.gaps} goalUnset={result.targetSource === "goal_unset"} />
     <div className="grid items-start gap-6 xl:grid-cols-[1.6fr_1fr]">
     <div className="space-y-6">
-    <section id="trajectory">
+    <section id="trajectory-summary">
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5 text-brand-gold"/>{t("Career trajectory")}</CardTitle></CardHeader><CardContent className="space-y-4">
       <p>{t(employee.grade)} {t(employee.role)} → <strong>{t(result.target.target_grade)} {t(result.target.target_role)}</strong></p>
       {result.targetSource === "default" && <p className="text-sm text-muted-foreground">{t("Suggested default: next grade in the current role. No explicit goal is set.")}</p>}

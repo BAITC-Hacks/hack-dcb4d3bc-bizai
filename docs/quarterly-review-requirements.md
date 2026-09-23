@@ -35,7 +35,14 @@ Self-rating, AI advice, manager approval and activity-derived progress are disti
 | `events.json` has no employee assignments, deadlines, artifact requirements or approver fields | Custom HR tasks need application-owned definitions/assignments around the catalog contract. |
 | The app has only employee/HR sessions and no review writes | Quarterly cycles, manager decisions, task authoring and approval permissions are new implementation work. |
 
-The source categories are `engineering`, `frontend`, `quality`, `data`, `product`, `hr`, `sales`, `support`, `communication`, `leadership`, `collaboration`, `thinking`, and `personal_effectiveness`. Preserve them. The mapping for broad categories such as thinking and personal effectiveness must be explicit, and no skill can disappear from the roadmap because it lacks a track mapping.
+The source categories are `engineering`, `frontend`, `quality`, `data`, `product`, `hr`, `sales`, `support`, `communication`, `leadership`, `collaboration`, `thinking`, and `personal_effectiveness`. Preserve them. A proposed display-only mapping is below; this is a product choice, not a taxonomy supplied by the dataset. Unknown categories need a visible fallback and validation notice so no skill disappears.
+
+| Requested track | Source categories (proposed) |
+| --- | --- |
+| Engineering Skills | `engineering`, `frontend`, `quality`, `data` |
+| Leadership | `leadership`, `thinking`, `personal_effectiveness` |
+| Communication | `communication`, `collaboration` |
+| Domain | `product`, `hr`, `sales`, `support` |
 
 ## 1. Review cycle and versions
 
@@ -53,6 +60,7 @@ draft -> submitted -> ai_reviewed -> manager_approved
 - Each relevant skill requires a 0–5 rating and a nonblank, non-whitespace business justification before submission. UI and server enforce the same rule.
 - Preserve what was submitted. Returning a cycle creates an editable new revision; it does not erase the previous employee statement, AI output or manager comment.
 - Freeze the evidence snapshot and target requirements for the submitted revision. An answer generated for an old revision cannot be attached to a new submission or approved as current.
+- A calibration challenge needs an answer path before manager approval: employee clarification creates a new editable revision, then resubmission reruns calibration. Do not force an employee to wait for a manager return just to answer the agent. Accepted revisions remain immutable.
 - Make submit, calibrate and approve idempotent. Concurrent approvals or changed reviewer assignments must not produce two different accepted outcomes silently.
 - Do not fabricate an automatic recurring scheduler for the prototype. Manually opening a named quarterly cycle is sufficient unless scheduling is explicitly needed.
 
@@ -85,6 +93,8 @@ If retained, model `confidence` is an uncalibrated diagnostic, not probability t
 
 Store model/prompt/policy versions, evidence references, processing mode, validation result and latency. Keep the employee's statement, AI advice and manager decision inspectable together. HR edits or later reviewer decisions do not rewrite what the AI originally advised.
 
+Use one total response deadline, including tool calls, output validation and any retry; a 10-second timeout for each separate attempt would violate the 10-second response requirement. Cancel or ignore late results for expired/changed revisions. Keep the deterministic result available to the manager. Insufficient evidence blocks a confident AI conclusion, not the manager's ability to review the case and record a reasoned human decision.
+
 ## 3. Approval and skill arithmetic
 
 Use separate concepts:
@@ -102,6 +112,16 @@ For new cycles, an AI verdict and a self-rating never directly set the assessmen
 **Agreed policy: assess only reviewed skills.** Store per-skill assessment values and evidence cutoffs in application-owned state; preserve other skills' baselines/cutoffs. Do not mutate the raw imported profile or advance its employee-wide cutoff as though all skills had been reviewed. A user-facing latest-review date may advance as metadata, but it must not become the computational cutoff for unreviewed skills.
 
 Record `evidence_as_of` separately from `approved_at`. If submission and approval are days apart, identify whether intervening activities were included before advancing any cutoff. Replay only gains after the assessment's declared evidence cutoff. Preserve an imported provenance label rather than inventing an approval record for the historical assessment.
+
+Illustrative arithmetic, not a claim about a supplied employee: both skills start at 2 on June 1; a June 20 completion adds 1 to each; System Design is assessed at 3 with evidence through July 1; a July 5 completion adds 1 to System Design; approval occurs July 10. All gains have a cap of 5.
+
+| Policy after approval | Effective System Design | Effective Python |
+| --- | --- | --- |
+| Per-skill cutoff: System Design July 1; Python June 1 | `3 + 1 = 4` | `2 + 1 = 3` |
+| Incorrect: move both cutoffs to July 10 | `3` — loses the July 5 gain | `2` — loses the June 20 gain |
+| Incorrect: new System Design baseline with old June 1 cutoff | `3 + 1 + 1 = 5` — counts June 20 twice | `3` |
+
+If System Design requires level 4, the correct effective level is 4 but its approved level is 3: the formal module is still open and ready for reassessment. Prevent an older cycle approved later from silently replacing a more recent skill assessment; reject that stale baseline write or require an explicit correction flow outside the initial prototype.
 
 Returns need a mandatory explanation and no skill update. Department heads with no manager need an explicitly designated authorized reviewer; disallow self-approval. If managers change, reassign the pending cycle with attribution and revoke obsolete approval access.
 
@@ -149,6 +169,16 @@ Open modules drive the next-step recommender. Prioritize critical gaps. A challe
 
 Separate two intents: `learning` and `evidence_collection`. For example, someone with strong real experience but insufficient recorded proof may need to present a design artifact, not repeat a course. Preserve the employee's ability to edit their development plan while keeping formal review requirements intact.
 
+Calibration compares a claim with evidence; development compares assessed/effective skills with the chosen target. Keep their outputs independent:
+
+| Calibration outcome | Development consequence |
+| --- | --- |
+| `aligned` at 2, target requires 4 | No calibration challenge, but the target gap still needs a development step. |
+| `underrated`, stronger evidence supports the claim | Surface the evidence for the manager; recommend learning only if a remaining target gap exists. |
+| `overrated` or `insufficient_evidence` | Ask for a concrete demonstration or missing proof; do not automatically increase the numerical gap or prescribe remedial training. |
+
+“Aligned: no action” therefore means no calibration intervention, not no development recommendation. Level 5 has no next level on the supplied scale. Never suggest training toward an invented level 6 or an activity whose gain cap cannot help the relevant gap.
+
 Behavioral history refines suitable formats, with its source and uncertainty visible. Do not infer personal motives or a calibrated probability of success from missed activities. Approved assessments, new tasks, goal changes and completion events invalidate only the relevant decision context.
 
 ## 8. Access and localization
@@ -166,3 +196,9 @@ Build one full quarterly cycle for one employee and their manager, with a role-l
 Then add one authored HR task, mentor discovery and external-resource enrichment in that order. Do not build every extension before proving approval arithmetic and evidence traceability.
 
 Acceptance must cover missing/whitespace justification, insufficient evidence, both approval and return, stale review revisions, partial assessment replay, duplicate approval/completion, unauthorized reviewers, critical blockers, missing-manager routing, unavailable AI, preferred-language output and no public comparison. Tests should compare real before/after skill values, not only status transitions.
+
+## Source pointers
+
+- [Dataset contract](../case_source/case_1/career_quest_dataset/README.md): assessment date, activity gains, history dates and the meaning of `feedback_rating`.
+- [Skill and role catalog](../case_source/case_1/career_quest_dataset/skills.json) and [employee profiles](../case_source/case_1/career_quest_dataset/employees.json): categories, mentoring skill and reporting relationships.
+- [Current skill replay](../lib/career/skills.ts) and [current access model](../lib/server/access.ts): global cutoff, implicit target and employee/HR-only authorization.
