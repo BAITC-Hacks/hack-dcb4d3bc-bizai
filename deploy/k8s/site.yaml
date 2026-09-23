@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: site
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: site-bizai
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: site-local-retain
+  local:
+    path: /srv/site-data/bizai
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [vm14476.equhost.kz]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bizai-data
+  namespace: site
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: site-local-retain
+  volumeName: site-bizai
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bizai
+  namespace: site
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 240
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: bizai
+  template:
+    metadata:
+      labels:
+        app: bizai
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: localhost/site/bizai:bootstrap-09b9f02
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: PORT
+              value: '3000'
+            - name: HOSTNAME
+              value: 0.0.0.0
+            - name: DATABASE_PATH
+              value: /app/.data/career-quest.sqlite
+            - name: COOKIE_SECURE
+              value: 'false'
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /app/.data
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 3
+            timeoutSeconds: 5
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: bizai-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bizai
+  namespace: site
+spec:
+  type: ClusterIP
+  selector:
+    app: bizai
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bizai
+  namespace: site
+spec:
+  podSelector:
+    matchLabels:
+      app: bizai
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: site
+      ports:
+        - port: 3000
+          protocol: TCP
+  egress:
+    - {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bizai
+  namespace: site
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bizai
+                port:
+                  name: http
