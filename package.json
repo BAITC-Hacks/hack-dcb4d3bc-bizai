@@ -16,7 +16,7 @@
     "test:ai": "node --import tsx tests/assistant-http.mjs",
     "test:reviews": "node --import tsx tests/reviews-http.mjs",
     "test:identity": "node --import tsx tests/identity-http.mjs",
-    "demo": "npm ci && npm run build && AUTH_MODE=demo npm start"
+    "demo": "npm ci && npm run build && npm start"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",

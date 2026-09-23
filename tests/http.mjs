@@ -9,7 +9,7 @@ const directory = mkdtempSync(join(tmpdir(), "career-http-"));
 const port = process.env.SMOKE_PORT ?? "3101";
 const base = `http://127.0.0.1:${port}`;
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", port], {
-  env: { ...process.env, AUTH_MODE: "demo", DATABASE_PATH: join(directory, "test.sqlite"), COOKIE_SECURE: "false" }, stdio: ["ignore", "pipe", "pipe"],
+  env: { ...process.env, DATABASE_PATH: join(directory, "test.sqlite"), COOKIE_SECURE: "false" }, stdio: ["ignore", "pipe", "pipe"],
 });
 let logs = "";
 child.stdout.on("data", data => { logs += data; });

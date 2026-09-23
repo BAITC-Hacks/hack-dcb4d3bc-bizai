@@ -4,12 +4,12 @@ import { cookies } from "next/headers";
 import { repository } from "@/lib/server/repository";
 import { sessionCookie } from "@/lib/server/session";
 import { sameOrigin } from "@/lib/server/http";
-import { demoAuthEnabled, sessionKey, verifyAccessToken } from "@/lib/server/identity";
+import { sessionKey } from "@/lib/server/identity";
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const form = await request.formData();
-  const identity = demoAuthEnabled() ? { accessRole: form.get("accessRole"), employeeId: form.get("employeeId") } : verifyAccessToken(form.get("accessToken"));
+  const identity = { accessRole: form.get("accessRole"), employeeId: form.get("employeeId") };
   const accessRole = identity?.accessRole;
   const employeeId = identity?.employeeId;
   const logout = form.get("logout") === "true";

@@ -10,17 +10,14 @@ Node.js **22.13+** is required for built-in SQLite. For a synthetic demo, one co
 npm run demo
 ```
 
-For development with verified account access, issue an access token before starting:
+For development:
 
 ```sh
 npm ci
-node scripts/issue-access-token.mjs employee E0001
-# Issue HR access separately when needed:
-node scripts/issue-access-token.mjs hr
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000) and enter the issued token. The server assigns the account and role. `npm run demo` instead enables the explicit synthetic account picker. For a production build:
+Open [localhost:3000](http://localhost:3000) and choose an employee profile or the HR workspace. For a production build:
 
 ```sh
 npm run build
@@ -39,7 +36,6 @@ docker volume create career-quest-data
 docker run -d --name career-quest \
   --restart unless-stopped \
   -p 3000:3000 \
-  -e AUTH_MODE=demo \
   --mount type=volume,source=career-quest-data,target=/app/.data \
   career-quest:local
 ```
@@ -72,18 +68,15 @@ Runtime settings can be passed with `docker run -e KEY=value` or an env file:
 | `DATABASE_PATH` | `/app/.data/career-quest.sqlite` | Persistent SQLite file |
 | `DATASET_DIR` | `/app/case_source/case_1/career_quest_dataset` | Seed/reset fixtures |
 | `COOKIE_SECURE` | `false` | Set `true` when the external URL uses HTTPS |
-| `AUTH_MODE` | `credentials` | Only the exact value `demo` enables public account selection |
-| `AUTH_CREDENTIALS_FILE` | `.data/access-tokens.json` | Server-side token hashes and account assignments |
 
 If building on an Apple Silicon Mac for an AMD64 server, use
 `docker buildx build --platform linux/amd64 --load -t career-quest:local .`.
-For verified access, omit `AUTH_MODE=demo` and mount your administrator-created credential JSON read-only, setting `AUTH_CREDENTIALS_FILE` to its container path. Ensure UID 1000 can read it. The demo command above deliberately permits account selection.
 
 ## Implemented
 
 | Route | Behavior |
 | --- | --- |
-| `/` | Access-token login; account picker only in explicit demo mode |
+| `/` | Employee/HR account picker |
 | `/employee/dashboard` | Persistent goals and milestones, assessment modules, effective skills, history, AI development assistant |
 | `/employee/reviews` | Quarterly self-assessment drafts/submissions, preserved revisions, scoped direct-report inspection |
 | `/employee/learning` | Real activity catalog, prerequisites, sessions, eligibility reasons, AI activity explanations |
@@ -91,7 +84,7 @@ For verified access, omit `AUTH_MODE=demo` and mount your administrator-created 
 | `/hr/employees/[id]` | Read-only employee inspection and AI development discussion briefs |
 | `/hr/data` | Validate/preview/apply jury profiles and history, dataset counts, reset |
 
-Employee access is checked on the server for pages and APIs. SQLite-backed opaque sessions separate `accessRole` from the employee's job role. Authentication defaults to administrator-issued random 256-bit access tokens. Only SHA-256 hashes are stored in `.data/access-tokens.json` (or `AUTH_CREDENTIALS_FILE`); tokens are printed once by the provisioning script. Login ignores caller-supplied identity and role fields in this mode, and the public entry page does not list employees. Missing or invalid credentials fail closed. Existing unprefixed sessions and cookies issued in a different auth mode are rejected. Sessions expire after eight hours. This is token-based authentication, not SSO. Use HTTPS and `COOKIE_SECURE=true` for internal deployment. **`AUTH_MODE=demo` explicitly enables the public role picker**; anyone using that mode can choose HR, so use it only with synthetic data.
+Employee access is checked on the server for pages and APIs. SQLite-backed opaque sessions separate `accessRole` from the employee's job role and expire after eight hours. The public account picker requires no access token; anyone can select an employee or HR account, so use only synthetic data. Previously issued credential sessions are rejected. Use HTTPS and `COOKIE_SECURE=true` when serving over HTTPS.
 
 Imports accept the original employee JSON envelope and history CSV columns, together or separately. New IDs merge; identical records are unchanged; conflicting duplicates fail. References are validated against the merged dataset. Preview revisions prevent stale writes, and SQLite transactions prevent partial imports. Limits: 2 MB per file in the UI, 5 MB per API request. Reset restores the supplied fixtures and discards imports, personal plans and their action records. Review revisions remain stored under an inactive dataset scope and are not exposed as current reviews after reset.
 

@@ -1,16 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { SqliteRepository, loadFixtures } from "../lib/server/database";
 import { initialPlan } from "../lib/career/planning";
 import { effectiveSkills } from "../lib/career/skills";
 import { buildAssistantContext, validateAdvice } from "../lib/ai/context";
 import { presentAdvice } from "../lib/ai/presentation";
-import { demoAuthEnabled, sessionKey, verifyAccessToken } from "../lib/server/identity";
+import { sessionKey } from "../lib/server/identity";
 
 const data = loadFixtures();
 const employee = data.employees.find(e => e.employee_id === "E0165")!;
@@ -87,29 +87,6 @@ test("legacy completion migration preserves IDs, history and gains across reopen
   } finally { rmSync(dir, { recursive: true }); }
 });
 
-test("identity fails closed and binds random tokens to server-defined roles", () => {
-  const dir = mkdtempSync(join(tmpdir(), "identity-"));
-  const previousMode = process.env.AUTH_MODE;
-  const previousFile = process.env.AUTH_CREDENTIALS_FILE;
-  try {
-    delete process.env.AUTH_MODE;
-    process.env.AUTH_CREDENTIALS_FILE = join(dir, "credentials.json");
-    assert.equal(demoAuthEnabled(), false);
-    assert.equal(sessionKey("cookie"), "credentials:cookie");
-    const token = randomBytes(32).toString("hex");
-    assert.equal(verifyAccessToken(token), null);
-    writeFileSync(process.env.AUTH_CREDENTIALS_FILE, JSON.stringify([{ tokenHash: createHash("sha256").update(token).digest("hex"), accessRole: "employee", employeeId: "E0001" }]));
-    assert.deepEqual(verifyAccessToken(token), { accessRole: "employee", employeeId: "E0001" });
-    assert.equal(verifyAccessToken(randomBytes(32).toString("hex")), null);
-    assert.equal(verifyAccessToken("hr"), null);
-    process.env.AUTH_MODE = "demo";
-    assert.equal(demoAuthEnabled(), true);
-    assert.equal(sessionKey("cookie"), "demo:cookie");
-    writeFileSync(process.env.AUTH_CREDENTIALS_FILE, "invalid JSON");
-    assert.equal(verifyAccessToken(token), null);
-  } finally {
-    if (previousMode === undefined) delete process.env.AUTH_MODE; else process.env.AUTH_MODE = previousMode;
-    if (previousFile === undefined) delete process.env.AUTH_CREDENTIALS_FILE; else process.env.AUTH_CREDENTIALS_FILE = previousFile;
-    rmSync(dir, { recursive: true });
-  }
+test("picker sessions use a separate namespace from credential sessions", () => {
+  assert.equal(sessionKey("cookie"), "demo:cookie");
 });

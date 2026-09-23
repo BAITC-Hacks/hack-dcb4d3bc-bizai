@@ -13,7 +13,7 @@ const path = join(directory, "test.sqlite");
 const base = `http://127.0.0.1:${process.env.AI_SMOKE_PORT ?? "3103"}`;
 const repo = new SqliteRepository(path);
 const audit = new AssistantStore(path);
-const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", new URL(base).port], { env: { ...process.env, AUTH_MODE: "demo", DATABASE_PATH: path, COOKIE_SECURE: "false", OPENAI_API_KEY: "" }, stdio: ["ignore", "pipe", "pipe"] });
+const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", new URL(base).port], { env: { ...process.env, DATABASE_PATH: path, COOKIE_SECURE: "false", OPENAI_API_KEY: "" }, stdio: ["ignore", "pipe", "pipe"] });
 let logs = "";
 child.stdout.on("data", chunk => { logs += chunk; }); child.stderr.on("data", chunk => { logs += chunk; });
 let count = 0;
