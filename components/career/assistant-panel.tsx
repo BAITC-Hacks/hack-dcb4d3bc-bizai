@@ -93,6 +93,8 @@ export function AssistantPanel({ employeeId, mode, activities = [], compact = fa
   }
   function stop() {
     // A stopped request must not later overwrite a retry, even if transport abort is delayed.
+    // The Stop button also prevents default and has a distinct key: swapping it to Send
+    // during a pointer click must not submit the form as the browser finishes that click.
     epoch.current++;
     activeRequest.current?.abort(); activeRequest.current = null;
     setBusy(false); setSending(false); setStreamText(""); setError(null); setNotice("stopped");
@@ -161,7 +163,7 @@ export function AssistantPanel({ employeeId, mode, activities = [], compact = fa
       {session && !session.configured && <p className="mb-2 text-xs text-amber-800">{say("not_configured")}</p>}
       {error && <div role="alert" className="mb-3 flex flex-wrap items-center gap-2 text-xs text-amber-800"><span>{say(error)}</span><button type="button" className="font-semibold underline" disabled={busy} onClick={() => { if (session && submission.current && error !== "stale") void ask(submission.current.message); else { router.refresh(); setReload(n => n + 1); } }}>{say(error === "stale" ? "retry" : "chatTryAgain")}</button></div>}
       {notice && !sending && <p role="status" className="mb-2 text-xs text-muted-foreground">{say(notice)}</p>}
-      <form onSubmit={event => { event.preventDefault(); void ask(message); }} className="chat-composer"><label className="sr-only" htmlFor={instanceId}>{say("placeholder")}</label><textarea ref={composer} id={instanceId} value={message} onChange={e => { setMessage(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`; }} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void ask(message); } }} placeholder={say("placeholder")} maxLength={2000} rows={1} disabled={busy} />{sending ? <button type="button" className="chat-send" aria-label={say("chatStop")} title={say("chatStop")} onClick={stop}><Square size={15} fill="currentColor"/></button> : <button type="submit" className="chat-send" disabled={!session || busy || !message.trim()} aria-label={say("send")} title={say("send")}><ArrowUp size={19}/></button>}</form>
+      <form onSubmit={event => { event.preventDefault(); void ask(message); }} className="chat-composer"><label className="sr-only" htmlFor={instanceId}>{say("placeholder")}</label><textarea ref={composer} id={instanceId} value={message} onChange={e => { setMessage(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`; }} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void ask(message); } }} placeholder={say("placeholder")} maxLength={2000} rows={1} disabled={busy} />{sending ? <button key="stop" type="button" className="chat-send" aria-label={say("chatStop")} title={say("chatStop")} onClick={event => { event.preventDefault(); stop(); }}><Square size={15} fill="currentColor"/></button> : <button key="send" type="submit" className="chat-send" disabled={!session || busy || !message.trim()} aria-label={say("send")} title={say("send")}><ArrowUp size={19}/></button>}</form>
       <p className="mt-2 text-center text-[10px] text-muted-foreground">{say("chatHint")}</p>
     </footer>
   </section>;
