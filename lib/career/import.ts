@@ -70,9 +70,9 @@ export function validateDataset(data: Dataset): Dataset {
 export function parseDataset(input: { employees: string; events: string; skills: string; history: string }): Dataset {
   const employees = employeeEnvelope.parse(JSON.parse(input.employees));
   const events = z.object({ meta: metaSchema, events: z.array(eventSchema) }).parse(JSON.parse(input.events));
-  const skills = z.object({ meta: metaSchema, skills: z.array(skillSchema), role_profiles: z.array(roleSchema) }).parse(JSON.parse(input.skills));
+  const skills = z.object({ meta: metaSchema, proficiency_scale: z.record(z.string(), z.string()).optional(), skills: z.array(skillSchema), role_profiles: z.array(roleSchema) }).parse(JSON.parse(input.skills));
   if ([events.meta, skills.meta].some(meta => meta.as_of_date !== employees.meta.as_of_date)) throw new Error("Dataset snapshot dates must match");
-  return validateDataset({ meta: employees.meta, employees: employees.employees, events: events.events, skills: skills.skills, role_profiles: skills.role_profiles, history: parseHistory(input.history) });
+  return validateDataset({ proficiency_scale: skills.proficiency_scale, meta: employees.meta, employees: employees.employees, events: events.events, skills: skills.skills, role_profiles: skills.role_profiles, history: parseHistory(input.history) });
 }
 
 function merge<T>(existing: T[], incoming: T[], key: (row: T) => string) {

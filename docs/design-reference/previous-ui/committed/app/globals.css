@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 33% 98%; --foreground: 220 30% 12%;
+    --card: 0 0% 100%; --card-foreground: 220 30% 12%;
+    --primary: 211 100% 25%; --primary-foreground: 0 0% 100%;
+    --secondary: 220 24% 94%; --secondary-foreground: 220 30% 18%;
+    --muted: 220 20% 96%; --muted-foreground: 220 12% 40%;
+    --accent: 35 100% 48%; --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 48%; --destructive-foreground: 0 0% 100%;
+    --border: 220 18% 88%; --input: 220 18% 88%; --ring: 211 100% 35%; --radius: 0.75rem;
+  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground antialiased; font-family: Arial, Helvetica, sans-serif; }
+  h1 { @apply text-3xl font-semibold tracking-tight text-brand-ink; }
+  h2 { @apply text-xl font-semibold text-brand-ink; }
+  a, button, input, select { @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-navy; }
+  th { @apply text-left font-medium text-muted-foreground; }
+  th, td { @apply border-b px-3 py-3; }
+  select { @apply w-full rounded-md border bg-white px-3 py-2; }
+}
+
+@layer components {
+  .gradient-navy { background-image: linear-gradient(135deg, #003f7d 0%, #1a5694 60%, #002a55 100%); }
+  .gradient-paper { background-image: radial-gradient(1200px 600px at 10% -10%, rgba(0,63,125,.08), transparent 60%), radial-gradient(900px 500px at 110% 0%, rgba(243,146,0,.08), transparent 60%), linear-gradient(180deg,#f6f8fb,#fff); }
+  .hero-grid { background-image: linear-gradient(rgba(0,63,125,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,63,125,.06) 1px,transparent 1px); background-size:40px 40px; }
+  .skill-progress { @apply h-2 w-full overflow-hidden rounded-full bg-brand-mist; appearance: none; }
+  .skill-progress::-webkit-progress-bar { @apply rounded-full bg-brand-mist; }
+  .skill-progress::-webkit-progress-value { background: linear-gradient(90deg,#003f7d,#f39200); border-radius: 999px; }
+  .skill-progress::-moz-progress-bar { background: linear-gradient(90deg,#003f7d,#f39200); border-radius: 999px; }
+  section[id], div[id] { scroll-margin-top: 7rem; }
+  tbody tr { @apply transition-colors hover:bg-brand-paper; }
+}

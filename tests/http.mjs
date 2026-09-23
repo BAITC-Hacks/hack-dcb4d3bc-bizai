@@ -46,6 +46,14 @@ try {
     assert.equal(response.status, 200);
     assert.ok(!(await response.text()).includes("Arman Zhaksylykov"), "Another employee leaked into response");
   }
+  // Focused destinations must expose their workflow without remounting unrelated forms.
+  for (const [view, section] of [["plan", "personal-plan"], ["advisor", "assistant"], ["skills", "skills"], ["history", "history"]]) {
+    const response = await request(`/employee/dashboard?view=${view}`, { headers: { Cookie: employee } });
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.ok(html.includes(`id="${section}"`), `${view} workflow missing`);
+    if (view !== "plan") assert.ok(!html.includes('id="personal-plan"'), "Plan editor leaked into another destination");
+  }
   assert.equal((await request("/api/employees/E0001", { headers: { Cookie: employee } })).status, 200);
   assert.equal((await request("/api/employees/E0002", { headers: { Cookie: employee } })).status, 403);
   for (const path of ["/hr/dashboard", "/hr/data", "/hr/employees/E0002"]) assert.equal((await request(path, { headers: { Cookie: employee } })).status, 307);
@@ -53,13 +61,13 @@ try {
   const hr = await login("hr");
   for (const path of ["/hr/dashboard", "/hr/employees/E0001", "/hr/data"]) assert.equal((await request(path, { headers: { Cookie: hr } })).status, 200);
   for (const [locale, words] of Object.entries({
-    en: ["Your next chapter.", "Career trajectory", "Development activities", "Development overview", "Data &amp; imports"],
-    ru: ["Ваш следующий этап.", "Карьерная траектория", "Активности для развития", "Обзор развития", "Данные и импорт"],
-    kk: ["Сіздің келесі кезеңіңіз.", "Мансаптық жол", "Дамуға арналған іс-шаралар", "Даму шолуы", "Деректер мен импорт"],
+    en: ["Your next chapter.", "Overview", "Development activities", "People", "Data &amp; imports"],
+    ru: ["Ваш следующий этап.", "Обзор", "Активности для развития", "Сотрудники", "Данные и импорт"],
+    kk: ["Сіздің келесі кезеңіңіз.", "Шолу", "Дамуға арналған іс-шаралар", "Қызметкерлер", "Деректер мен импорт"],
   })) {
     for (const [path, session, expected] of [
       ["/", "", words[0]], ["/employee/dashboard", employee, words[1]],
-      ["/employee/learning", employee, words[2]], ["/hr/dashboard", hr, words[3]],
+      ["/employee/learning?tab=all", employee, words[2]], ["/hr/dashboard", hr, words[3]],
       ["/hr/data", hr, words[4]], ["/hr/employees/E0001", hr, words[1]],
     ]) {
       const response = await request(path, { headers: { Cookie: `${session}; career_quest_locale=${locale}` } });
@@ -67,7 +75,7 @@ try {
       const html = await response.text();
       assert.ok(html.includes(`<html lang="${locale}"`), `Wrong document language: ${path}`);
       assert.ok(html.includes(expected), `Missing ${locale} translation on ${path}: ${expected}`);
-      if (path === "/employee/learning" && locale === "kk") {
+      if (path.startsWith("/employee/learning") && locale === "kk") {
         assert.ok(html.includes("Ақпараттық қауіпсіздік негіздері"));
         assert.ok(html.includes("Дағдылардың өсуі"));
       }
@@ -83,6 +91,26 @@ try {
     assert.equal(response.status, 200);
     assert.equal((await response.json()).employee.employee_id, profile.employee_id);
   }
+  const complete = (cookie, origin = base) => request("/api/completions", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ eventId: "EV_005", datasetRevision: 1, planRevision: 0 }) });
+  assert.equal((await complete(hr)).status, 403);
+  assert.equal((await complete(employee, "https://other.example")).status, 403);
+  const completion = await complete(employee);
+  assert.equal(completion.status, 200);
+  assert.equal((await completion.json()).completion.after.SK_API_DESIGN, 3);
+  assert.equal((await (await complete(employee)).json()).repeated, true);
+  const resetCompletion = await post(hr, { mode: "reset", revision: 2 });
+  assert.equal(resetCompletion.status, 200);
+  const ownPlan = { goals: [{ id: "free", wording: "Build a community", origin: "employee", target: null }], focusId: "free", milestones: [] };
+  const savePlan = (cookie, revision, plan = ownPlan, origin = base) => request("/api/planning", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ datasetRevision: 3, revision, plan }) });
+  assert.equal((await savePlan(hr, 0)).status, 403);
+  assert.equal((await savePlan(employee, 0, ownPlan, "https://other.example")).status, 403);
+  assert.equal((await savePlan(employee, 0)).status, 200);
+  assert.equal((await savePlan(employee, 0)).status, 409);
+  const savedProfile = await (await request("/api/employees/E0001", { headers: { Cookie: hr } })).json();
+  assert.equal(savedProfile.planning.plan.goals[0].wording, "Build a community");
+  assert.equal(savedProfile.development.target, null);
+  assert.equal(savedProfile.development.coverage, null);
+  assert.equal((await savePlan(employee, 1, { ...ownPlan, focusId: "unknown" })).status, 400);
   const payload = { employees: JSON.stringify({ meta: dataset.meta, employees: [{ ...dataset.employees[0], employee_id: "JURY_TEST", full_name: "Synthetic Jury Profile" }] }) };
   assert.equal((await post(hr, { mode: "preview", ...payload }, "https://other.example")).status, 403);
   const preview = await post(hr, { mode: "preview", ...payload });

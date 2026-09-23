@@ -1,0 +1,69 @@
+{
+  "commit": "09b9f02f45da3e7d27abe360032936b11584b59d",
+  "files": [
+    {
+      "path": "app/page.tsx",
+      "sha256": "ddf0956fbefe02c43ad948af060ab0d370048422faec6cd95af3b51388495d6e"
+    },
+    {
+      "path": "app/globals.css",
+      "sha256": "72d5a6afa61c91380a3c71ac77f766234051dab9fc7df89f288e42718e0e4cb3"
+    },
+    {
+      "path": "app/employee/dashboard/page.tsx",
+      "sha256": "8b8be6a1d356eb07651cb4b43dcfe1810ef1a0e06a3629d89277c0286fd1c2a8"
+    },
+    {
+      "path": "app/employee/learning/page.tsx",
+      "sha256": "2c710260ea70f6a4bd754d54f4643dc43b07297955143c96f83fbdce91ae35c9"
+    },
+    {
+      "path": "app/hr/dashboard/page.tsx",
+      "sha256": "eaee3174d91dfc5f8cc098d1f2aed6a5dbdd3c6e1b127c9db33c4e83c754870d"
+    },
+    {
+      "path": "app/hr/employees/[id]/page.tsx",
+      "sha256": "71935b927e689acf26c6e4d331c23f3d4cb5970d0ba08a6a305f4947be8c5a12"
+    },
+    {
+      "path": "components/shell/workspace-shell.tsx",
+      "sha256": "80e5e56afa262a1d206c067b6b256bc627e2b88df1d2839941bbae86ee9129eb"
+    },
+    {
+      "path": "components/career/development-panel.tsx",
+      "sha256": "d22b4f33a2e6a52344cdf1490ce6fba2f0d8004c2cc723ca016aad95b90bf657"
+    },
+    {
+      "path": "components/career/development-flow.tsx",
+      "sha256": "5489c7047d0e5293bcff287f47fb35ead08199029845355c821776353942e204"
+    },
+    {
+      "path": "components/career/activity-card.tsx",
+      "sha256": "cf12199531df00307a5175bce6f94e8b58b0b0a1367e79e8232015ae5841d644"
+    },
+    {
+      "path": "components/career/entry-card.tsx",
+      "sha256": "a409b8c4717b867ec41ff4ee56e1459179835efe0ccbcc134af46aa851d24240"
+    },
+    {
+      "path": "components/charts/donut.tsx",
+      "sha256": "89e6bbe0785d7c8561153f2b9dc0b1c174700d601a4cbfe63a3fbbccb50d067f"
+    },
+    {
+      "path": "components/ui/card.tsx",
+      "sha256": "8a6fb43cc03f3592ec304c2ee969942c7888ed6ea6f060fffc0c33b6f5fd226e"
+    },
+    {
+      "path": "components/ui/button.tsx",
+      "sha256": "0b19352a3df819e29f7d0cc235e27f58e5661852ca6945fea5b576e9d3ad2b0e"
+    },
+    {
+      "path": "components/ui/badge.tsx",
+      "sha256": "1642eaf541b7beed28412c3dd153f3bf7e64b4b0402d81277d29080a91325ae3"
+    },
+    {
+      "path": "tailwind.config.ts",
+      "sha256": "fdeca635e3281ac951fbd1557120bf8b70c1c959ee98135ced247221cdd4290e"
+    }
+  ]
+}

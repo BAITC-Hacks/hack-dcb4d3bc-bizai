@@ -1,6 +1,6 @@
 # Quarterly assessment proposal: findings and requirements
 
-Reviewed 2026-09-23 against the current code, supplied dataset and earlier product decisions. This records the new requirements and recommended implementation clarifications, not implemented behavior.
+Reviewed 2026-09-23 against the current code, supplied dataset and earlier product decisions. This records the new requirements and recommended implementation clarifications. Implementation checkpoints are recorded separately below; the complete workflow is not yet delivered.
 
 Confirmed after review: approval updates only reviewed skills and preserves other assessment baselines; closed grade modules indicate eligibility for a separate human promotion decision; calibration includes `insufficient_evidence`. These supersede conflicting earlier suggestions. The original quarterly workflow, manager authority, custom HR tasks and module roadmap are the requested extension; recommendations below fill in missing behavior and must not be confused with existing dataset facts.
 
@@ -202,3 +202,10 @@ Acceptance must cover missing/whitespace justification, insufficient evidence, b
 - [Dataset contract](../case_source/case_1/career_quest_dataset/README.md): assessment date, activity gains, history dates and the meaning of `feedback_rating`.
 - [Skill and role catalog](../case_source/case_1/career_quest_dataset/skills.json) and [employee profiles](../case_source/case_1/career_quest_dataset/employees.json): categories, mentoring skill and reporting relationships.
 - [Current skill replay](../lib/career/skills.ts) and [current access model](../lib/server/access.ts): global cutoff, implicit target and employee/HR-only authorization.
+
+
+## Implementation checkpoint — review records
+
+Implemented drafts and submissions on `/employee/reviews` and `/api/reviews`; managers use their employee session and current direct-report relationship, while HR has read-only access. The subject alone edits their self-assessment. One cycle per employee/quarter is opened against the saved target. All required target skills must have integer self-ratings 0–5 and nonblank justifications on submission. Drafts may remain incomplete. Requirements and scale descriptions are frozen at creation; relevant history, catalog rules and assessment baseline are captured at submission with source revision/date. The evidence snapshot may contain history outside the named quarter and must not later be interpreted as proof of performance during that quarter.
+
+Submission and reopening append versions. Identical immediate retries are idempotent; stale changes fail. The original submission survives a new editable revision. Ordinary imports/completions preserve review history, while demo reset starts a new review scope without exposing earlier records. No final ratings or global/per-skill cutoffs are written. AI calibration, approval/return, assigned reviewer overrides for employees without managers, and reviewed-skill overlays remain pending. The current manager can inspect a reassigned report; the stored reviewer ID describes the historical revision, not an authorization grant.

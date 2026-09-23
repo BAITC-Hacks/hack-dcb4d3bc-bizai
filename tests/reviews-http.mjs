@@ -1,0 +1,68 @@
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
+import { SqliteRepository } from "../lib/server/database.ts";
+const directory = mkdtempSync(join(tmpdir(), "career-reviews-http-"));
+const path = join(directory, "test.sqlite");
+const base = `http://127.0.0.1:${process.env.REVIEW_SMOKE_PORT ?? "3105"}`;
+const repo = new SqliteRepository(path);
+const data = repo.read().data;
+const subject = data.employees.find(e => e.career_goal && e.manager_id);
+const peer = data.employees.find(e => e.employee_id !== subject.employee_id && e.employee_id !== subject.manager_id);
+const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", new URL(base).port], { env: { ...process.env, DATABASE_PATH: path, COOKIE_SECURE: "false", OPENAI_API_KEY: "" }, stdio: ["ignore", "pipe", "pipe"] });
+let logs = "", count = 0;
+child.stdout.on("data", chunk => { logs += chunk; }); child.stderr.on("data", chunk => { logs += chunk; });
+async function request(url, cookie = "", body, origin = base) {
+  count++;
+  return fetch(base + url, { redirect: "manual", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, ...(body ? { method: "POST", body: JSON.stringify(body) } : {}) });
+}
+async function login(accessRole, employeeId) {
+  const response = await fetch(base + "/api/session", { method: "POST", redirect: "manual", headers: { Origin: base, "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ accessRole, ...(employeeId ? { employeeId } : {}) }) });
+  assert.equal(response.status, 303); return response.headers.get("set-cookie").split(";")[0];
+}
+try {
+  for (let i = 0; i < 100; i++) { if (child.exitCode !== null) throw new Error(logs); try { await fetch(base); break; } catch { await delay(100); } }
+  const owner = await login("employee", subject.employee_id), manager = await login("employee", subject.manager_id), stranger = await login("employee", peer.employee_id), hr = await login("hr");
+  const url = `/api/reviews?employeeId=${subject.employee_id}`;
+  assert.equal((await request(url)).status, 403);
+  assert.equal((await request(url, stranger)).status, 403);
+  assert.equal((await request(url, manager)).status, 200);
+  assert.equal((await request(url, hr)).status, 200);
+  for (const locale of ["en", "ru", "kk"]) assert.equal((await request("/employee/reviews", `${owner}; career_quest_locale=${locale}`)).status, 200);
+  assert.equal((await request(`/employee/reviews?employeeId=${subject.employee_id}`, manager)).status, 200);
+  assert.equal((await request(`/employee/reviews?employeeId=${subject.employee_id}`, stranger)).status, 404);
+  const session = await (await request(url, owner)).json();
+  const create = { action: "create", quarter: session.defaultQuarter, datasetRevision: session.datasetRevision, planRevision: session.planRevision };
+  assert.equal((await request("/api/reviews", hr, create)).status, 403);
+  assert.equal((await request("/api/reviews", owner, create, "https://other.example")).status, 403);
+  assert.equal((await request("/api/reviews", owner, { ...create, employeeId: peer.employee_id })).status, 400);
+  const opened = await request("/api/reviews", owner, create);
+  assert.equal(opened.status, 200);
+  const review = await opened.json();
+  assert.equal((await (await request("/api/reviews", owner, create)).json()).id, review.id);
+  const update = { action: "submit", id: review.id, revision: review.revision, datasetRevision: session.datasetRevision, items: review.items };
+  assert.equal((await request("/api/reviews", owner, update)).status, 400);
+  assert.equal((await request("/api/reviews", manager, update)).status, 403);
+  const items = review.items.map(item => ({ ...item, selfRating: 3, justification: "Delivered a documented improvement with measurable results." }));
+  const submitted = await (await request("/api/reviews", owner, { ...update, items })).json();
+  assert.equal(submitted.status, "submitted");
+  assert.equal((await (await request("/api/reviews", owner, { ...update, items })).json()).revision, submitted.revision);
+  assert.equal((await request("/api/reviews", owner, { ...update, action: "save", items })).status, 409);
+  const managerView = await (await request(url, manager)).json();
+  assert.equal(managerView.reviews[0].evidence.datasetRevision, session.datasetRevision);
+  assert.ok(managerView.reviews[0].evidence.history.every(h => h.employee_id === subject.employee_id));
+  const reopened = await (await request("/api/reviews", owner, { ...update, action: "reopen", revision: submitted.revision, items: [] })).json();
+  assert.equal(reopened.status, "draft");
+  const versions = (await (await request(url, owner)).json()).reviews;
+  assert.equal(versions.length, 3);
+  assert.equal(versions.find(r => r.status === "submitted").items[0].justification, items[0].justification);
+  assert.deepEqual(repo.read().data.employees.find(e => e.employee_id === subject.employee_id), subject);
+  repo.reset(session.datasetRevision);
+  assert.deepEqual((await (await request(url, owner)).json()).reviews, []);
+  assert.equal((await request("/api/reviews", owner, { ...update, revision: reopened.revision, action: "save", items })).status, 409);
+  console.log(`PASS: ${count} review HTTP checks; localized pages, direct-report scope, write ownership, justification validation, immutable submission, retries, revisions and reset isolation.`);
+} catch (error) { console.error(logs); throw error; }
+finally { child.kill("SIGTERM"); await new Promise(resolve => child.exitCode !== null ? resolve() : child.once("exit", resolve)); repo.close(); rmSync(directory, { recursive: true, force: true }); }

@@ -15,8 +15,8 @@ test("supplied dataset loads and all 200 profiles have a target calculation", ()
   assert.deepEqual([data.employees.length, data.events.length, data.skills.length, data.history.length], [200, 40, 60, 2743]);
   for (const employee of data.employees) {
     const result = development(employee, data);
-    assert.ok(result.coverage >= 0 && result.coverage <= 100);
-    assert.ok(result.gaps.length);
+    assert.ok(result.coverage === null || (result.coverage >= 0 && result.coverage <= 100));
+    assert.equal(result.gaps.length > 0, employee.career_goal !== null);
     assert.deepEqual(employee.skills, data.employees.find(e => e.employee_id === employee.employee_id)!.skills);
   }
 });
@@ -30,10 +30,10 @@ test("replay honors review cutoff, missing skills, caps and immutable assessment
   assert.deepEqual(employee.skills, { SK_PYTHON: 4 });
 });
 
-test("explicit cross-role goals, default next grade, and Lead without a goal", () => {
+test("explicit cross-role goals and no invented targets for missing goals", () => {
   const cross = data.employees.find(e => e.career_goal && e.career_goal.target_role !== e.role)!;
-  assert.equal(development(cross, data).target.target_role, cross.career_goal!.target_role);
-  assert.equal(development({ ...data.employees[0], grade: "Junior", career_goal: null }, data).target.target_grade, "Middle");
+  assert.equal(development(cross, data).target?.target_role, cross.career_goal!.target_role);
+  assert.equal(development({ ...data.employees[0], grade: "Junior", career_goal: null }, data).target, null);
   const lead = data.employees.find(e => e.grade === "Lead")!;
   assert.equal(development({ ...lead, career_goal: null }, data).targetSource, "goal_unset");
 });
@@ -98,4 +98,16 @@ test("SQLite persists imports, rolls back invalid writes and rejects stale previ
     assert.equal(second.session("token")?.employeeId, "NEW");
     first.deleteSession("token"); assert.equal(second.session("token"), undefined);
   } finally { first.close(); second.close(); rmSync(directory, { recursive: true }); }
+});
+
+test("mobility eligibility matches whole current or target pairs and preserves real prerequisites", () => {
+  const employee = data.employees[0];
+  const event = data.events.find(event => event.event_id === "EV_009")!;
+  const target = { target_role: "Backend Engineer", target_grade: "Middle" as const };
+  assert.ok(eligibility(employee, event, data).includes("Outside current and chosen target audiences"));
+  assert.deepEqual(eligibility(employee, event, data, target), []);
+  const locked = { ...event, prerequisites: { SK_PYTHON: 5 } };
+  assert.ok(eligibility(employee, locked, data, target).includes("Prerequisites not met"));
+  const cross = { target_role: "Other role", target_grade: "Middle" as const };
+  assert.ok(eligibility(employee, { ...event, target_roles: [employee.role], target_grades: [cross.target_grade] }, data, cross).includes("Outside current and chosen target audiences"));
 });

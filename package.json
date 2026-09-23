@@ -12,7 +12,9 @@
     "lint": "eslint app components lib tests tailwind.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
-    "test:http": "node tests/http.mjs"
+    "test:http": "node tests/http.mjs",
+    "test:ai": "node --import tsx tests/assistant-http.mjs",
+    "test:reviews": "node --import tsx tests/reviews-http.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",

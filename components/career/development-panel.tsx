@@ -1,47 +1,59 @@
+import Link from "next/link";
+import { ArrowRight, Target, BookOpen, CheckCircle2 } from "lucide-react";
 import { DevelopmentFlow } from "./development-flow";
+import { SkillCards } from "./skill-cards";
+import { PlanningEditor } from "./planning-editor";
+import { AssistantPanel } from "./assistant-panel";
+import { ReviewPanel } from "./review-panel";
+import { repository } from "@/lib/server/repository";
+import { getActor } from "@/lib/server/session";
+import { focusTarget } from "@/lib/career/planning";
 import { getI18n } from "@/lib/i18n/server";
-import { Compass, Target, CheckCircle2, Sparkles, ArrowUpRight } from "lucide-react";
-import { Donut } from "@/components/charts/donut";
-import { grades } from "@/lib/career/types";
 import { development } from "@/lib/career/skills";
 import type { Dataset, Employee } from "@/lib/career/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
-export async function DevelopmentPanel({ employee, data }: { employee: Employee; data: Dataset }) {
+export async function DevelopmentPanel({ employee, data, view = "overview" }: { employee: Employee; data: Dataset; view?: string }) {
   const { t, formatDate, formatNumber } = await getI18n();
-  const result = development(employee, data);
+  const store = repository();
+  const actor = await getActor();
+  const snapshot = store.read();
+  data = snapshot.data;
+  employee = data.employees.find(item => item.employee_id === employee.employee_id)!;
+  const planning = store.planning(employee.employee_id);
+  const result = development({ ...employee, career_goal: focusTarget(planning.plan) }, data);
   const history = data.history.filter(row => row.employee_id === employee.employee_id).sort((a, b) => b.date.localeCompare(a.date));
   const names = new Map(data.events.map(event => [event.event_id, event.title]));
+
+  const isHR = actor?.accessRole === "hr";
+  const base = isHR ? `/hr/employees/${employee.employee_id}` : "/employee/dashboard";
+  const tabs = [["overview", "Overview"], ["plan", "My plan"], ["advisor", "Development advisor"], ["skills", "Skills & strengths"], ["history", "Learning history"], ...(isHR ? [["reviews", "Reviews"]] : [])];
+  const active = tabs.some(([id]) => id === view) ? view : "overview";
+  const focusedGoal = planning.plan.goals.find(g => g.id === planning.plan.focusId);
+  const critical = result.gaps.filter(g => g.critical && !g.closed);
+  const href = (section: string) => `${base}?view=${section}`;
   return <>
-    <div className="gradient-navy relative overflow-hidden rounded-2xl p-6 text-white shadow-elevated md:p-8">
-      <Compass aria-hidden="true" className="pointer-events-none absolute -right-10 -top-12 h-64 w-64 text-white/5"/>
-      <div className="relative grid gap-6 xl:grid-cols-[1.4fr_1fr]"><div><p className="text-xs uppercase tracking-[.18em] text-white/60">{t(employee.department)} · {employee.employee_id}</p><h1 className="mt-3 text-3xl text-white">{employee.full_name}</h1><p className="mt-2 text-white/75">{t(employee.grade)} {t(employee.role)}</p><p className="mt-5 text-sm text-white/65">{t("Every step builds on what you already know.")}</p></div>
-      <div className="grid grid-cols-3 gap-3 self-end">{[[`${result.coverage}%`, t("Skill coverage")], [history.filter(row => row.status === "completed").length, t("Completed")], [employee.tenure_months, t("Months here")]].map(([value,label]) => <div key={label} className="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur"><p className="text-[10px] uppercase tracking-widest text-white/65">{label}</p><p className="mt-2 text-2xl font-semibold">{typeof value === "number" ? formatNumber(value) : value}</p></div>)}</div></div>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-4" aria-label={t("Current and target grade")}>{grades.map((grade, index) => <div key={grade} className={`rounded-2xl border p-4 ${grade === employee.grade ? "border-brand-gold bg-brand-gold/5" : "border-brand-mist bg-white"}`}><div className="flex items-center justify-between"><span className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${grade === employee.grade ? "bg-brand-gold text-white" : "bg-brand-mist text-brand-navy"}`}>{index+1}</span>{grade === employee.grade && <Badge variant="gold">{t("Current")}</Badge>}{grade === result.target.target_grade && grade !== employee.grade && <Badge variant="navy">{t("Target")}</Badge>}</div><p className="mt-3 text-sm font-semibold">{t(grade)}</p></div>)}</div>
-    <DevelopmentFlow current={{ role: employee.role, grade: employee.grade }} target={{ role: result.target.target_role, grade: result.target.target_grade }} gaps={result.gaps} goalUnset={result.targetSource === "goal_unset"} />
-    <div className="grid items-start gap-6 xl:grid-cols-[1.6fr_1fr]">
-    <div className="space-y-6">
-    <section id="trajectory-summary">
-    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5 text-brand-gold"/>{t("Career trajectory")}</CardTitle></CardHeader><CardContent className="space-y-4">
-      <p>{t(employee.grade)} {t(employee.role)} → <strong>{t(result.target.target_grade)} {t(result.target.target_role)}</strong></p>
-      {result.targetSource === "default" && <p className="text-sm text-muted-foreground">{t("Suggested default: next grade in the current role. No explicit goal is set.")}</p>}
-      {result.targetSource === "goal_unset" && <p className="text-sm text-amber-800">{t("No career goal is set. Showing current Lead requirements; discuss a development goal with HR.")}</p>}
-      <div className="flex justify-between text-sm"><span>{t("Target skill coverage")}</span><strong>{result.coverage}%</strong></div>
-      <progress aria-label={t("Target skill coverage")} value={result.coverage} max={100} className="skill-progress"/>
-      <p className="text-xs text-muted-foreground">{t("Coverage measures achieved requirement units, capped per skill. It is not a promotion decision. Unmet critical skills remain visible below.")}</p>
-    </CardContent></Card>
-    </section><section id="skills"><Card><CardHeader><CardTitle>{t("Skills against target")}</CardTitle></CardHeader><CardContent><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th>{t("Skill")}</th><th>{t("Effective level")}</th><th>{t("Required")}</th><th>{t("Gap")}</th></tr></thead><tbody>{result.gaps.map(gap => <tr key={gap.id}><td>{t(gap.name)} {gap.critical && <Badge variant={gap.gap ? "warning" : "secondary"}>{t("Critical")}</Badge>}</td><td>{formatNumber(gap.level, 1)}</td><td>{formatNumber(gap.required)}</td><td>{gap.gap > 0 ? formatNumber(gap.gap, 1) : t("Met")}</td></tr>)}</tbody></table></div>
-      <p className="mt-4 text-xs text-muted-foreground">{t("Assessment:")} {formatDate(employee.last_review_date)}{t(". Only later completed activity adds gains. Historical CSV dates stand in for completion dates, including self-paced enrollment dates; exact completion-time replay is unavailable.")}</p>
-    </CardContent></Card>
-    </section></div>
-    <aside className="space-y-6"><Card><CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5 text-brand-navy"/>{t("Your target at a glance")}</CardTitle></CardHeader><CardContent><Donut slices={[{label:t("Requirements met"),value:result.gaps.filter(gap => !gap.gap).length,color:"#003F7D"},{label:t("Skills to develop"),value:result.gaps.filter(gap => gap.gap>0).length,color:"#F39200"}]} centerValue={`${result.gaps.filter(gap => !gap.gap).length}/${result.gaps.length}`} centerLabel={t("Skills at target")}/><div className="mt-5 rounded-xl border border-brand-gold/30 bg-brand-gold/5 p-4"><p className="text-sm font-semibold">{t("Critical gaps: {count}").replace("{count}", formatNumber(result.gaps.filter(gap => gap.critical && gap.gap>0).length))}</p><p className="mt-1 text-xs text-muted-foreground">{t("Prioritize the requirements essential to your target role.")}</p></div></CardContent></Card>
-    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-brand-gold"/>{t("Next-step recommendations")}</CardTitle></CardHeader><CardContent><div className="rounded-xl border border-dashed bg-brand-paper p-5"><p className="text-sm font-semibold">{t("Not generated")}</p><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("Personalized recommendations are not available yet. Explore activities and their requirements in the catalog.")}</p></div></CardContent></Card>
-    <Card><CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-600"/>{t("Recent learning")}</CardTitle></CardHeader><CardContent className="space-y-3">{history.filter(row => row.status === "completed").slice(0,3).map(row => <div key={row.record_id} className="rounded-xl border p-3"><p className="text-sm font-medium">{t(names.get(row.event_id))}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(row.date)}</p></div>)}<a href="#history" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-navy">{t("Full history")}<ArrowUpRight className="h-3 w-3"/></a></CardContent></Card>
-    </aside></div>
-    <section id="history">
-    <Card><CardHeader><CardTitle>{t("Participation history ·")} {formatNumber(history.length)}</CardTitle></CardHeader><CardContent><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th>{t("Date")}</th><th>{t("Activity")}</th><th>{t("Status")}</th><th>{t("Progress")}</th></tr></thead><tbody>{history.map(row => <tr key={row.record_id}><td className="whitespace-nowrap">{formatDate(row.date)}</td><td>{t(names.get(row.event_id))}</td><td>{t(row.status)}</td><td>{row.completion_pct}%</td></tr>)}</tbody></table>{!history.length && <p>{t("No participation records yet.")}</p>}</div></CardContent></Card>
-    </section>
+    <header className="page-heading"><div><p className="eyebrow">{isHR ? t("Employee record") : t("My development")}</p><h1>{isHR ? employee.full_name : t(tabs.find(([id]) => id === active)![1])}</h1><p className="mt-2 text-sm text-muted-foreground">{employee.full_name} <span className="px-2 text-slate-300">/</span> {t(employee.role)} · {t(employee.grade)}</p></div><span className="status-pill">{t("Assessment:")} {formatDate(employee.last_review_date)}</span></header>
+    {isHR && <nav className="section-tabs" aria-label={t("Employee record")}>{tabs.map(([id, label]) => <Link key={id} href={href(id)} aria-current={active === id ? "page" : undefined}>{t(label)}</Link>)}</nav>}
+    {active === "overview" && <>
+      <section className="focus-panel"><div className="min-w-0"><p className="eyebrow">{t("Focus goal")}</p><h2 className="mt-3 text-2xl md:text-3xl">{focusedGoal?.wording || t("What would you like to achieve or change?")}</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{focusedGoal ? t("Turn your goal into a plan, choose a useful next step, and keep evidence of your progress.") : t("Start with a goal in your own words. A role or grade is optional.")}</p><Link className="primary-link mt-6" href={href(focusedGoal ? "advisor" : "plan")}>{t(focusedGoal ? "Find my next step" : "Set a goal")}<ArrowRight className="h-4 w-4"/></Link></div><div className="focus-stat"><span className="text-4xl font-semibold tracking-tight">{result.target ? `${result.closed}/${result.gaps.length}` : "—"}</span><span className="mt-2 text-sm text-muted-foreground">{t("Closed modules")}</span><p className="mt-4 text-xs leading-5 text-muted-foreground">{t("Assessment evidence closes modules. Promotion remains a separate decision.")}</p>{result.target && <progress className="skill-progress mt-4" value={result.closed} max={result.gaps.length} aria-label={t("Closed modules")}/>}</div></section>
+      <div className="grid gap-4 md:grid-cols-3">{[
+        {icon:Target, title:"My plan", text:"Define outcomes, actions and success criteria.", url:href("plan"), value:planning.plan.milestones.filter(m => m.goalId === planning.plan.focusId).length},
+        {icon:CheckCircle2, title:"Skills & strengths", text:"Compare your evidence with the target requirements.", url:href("skills"), value:result.target ? `${critical.length} ${t("Critical")}` : "—"},
+        {icon:BookOpen, title:"Learning history", text:"See completed activities and recorded participation.", url:href("history"), value:history.filter(h => h.status === "completed").length}
+      ].map(({icon:Icon,title,text,url,value}) => <Link href={url} key={title} className="action-card"><div className="flex items-center justify-between"><Icon className="h-5 w-5 text-brand-navy"/><span className="text-sm font-semibold">{value}</span></div><h2 className="mt-5 text-base">{t(title)}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{t(text)}</p><ArrowRight className="mt-4 h-4 w-4 text-brand-navy"/></Link>)}</div>
+      <div className="grid gap-6 lg:grid-cols-2"><Card><CardHeader><CardTitle>{t("Priority requirements")}</CardTitle></CardHeader><CardContent>{!result.target ? <Link className="text-sm text-brand-navy underline" href={href("plan")}>{t("Choose a target to compare requirements")}</Link> : critical.length ? <ul className="divide-y">{critical.slice(0,4).map(g => <li key={g.id} className="flex items-center justify-between gap-4 py-3"><span className="text-sm font-medium">{t(g.name)}</span><span className="status-pill">{g.assessed} / {g.required}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">{t("No open critical modules for this target.")}</p>}<Link className="mt-5 inline-block text-sm font-medium text-brand-navy" href={href("skills")}>{t("View skill evidence")} →</Link></CardContent></Card><Card><CardHeader><CardTitle>{t("Recent learning")}</CardTitle></CardHeader><CardContent><ul className="divide-y">{history.filter(h => h.status === "completed").slice(0,3).map(h => <li className="py-3" key={h.record_id}><p className="text-sm font-medium">{t(names.get(h.event_id))}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(h.date)}</p></li>)}</ul>{!history.some(h => h.status === "completed") && <p className="text-sm text-muted-foreground">{t("No participation records yet.")}</p>}<Link className="mt-5 inline-block text-sm font-medium text-brand-navy" href={href("history")}>{t("Full history")} →</Link></CardContent></Card></div>
+    </>}
+    {active === "plan" && <div className="workspace-content"><p className="page-description">{t("Define outcomes, actions and success criteria.")}</p><PlanningEditor employeeId={employee.employee_id} key={`${employee.employee_id}-${planning.revision}`} initial={planning} datasetRevision={snapshot.revision} profiles={data.role_profiles} editable={!isHR && actor?.employeeId === employee.employee_id}/></div>}
+    {active === "advisor" && <div className="space-y-4"><div className="context-strip"><Target className="h-4 w-4 shrink-0"/><span>{t("Focus goal")}: <strong>{focusedGoal?.wording || t("Choose a focus goal")}</strong></span><Link className="ml-auto shrink-0 underline" href={href("plan")}>{t("My plan")}</Link></div><AssistantPanel key={`${employee.employee_id}-${planning.revision}-${snapshot.revision}`} employeeId={employee.employee_id} mode={isHR ? "hr" : "coach"}/></div>}
+    {active === "skills" && <><div className="context-strip">{result.target ? `${t(result.target.target_role)} · ${t(result.target.target_grade)} · ${result.closed}/${result.gaps.length} ${t("Closed modules")}` : t("Choose a target to compare requirements")}</div>{result.target && <DevelopmentFlow current={{ role: employee.role, grade: employee.grade }} target={{ role: result.target.target_role, grade: result.target.target_grade }} gaps={result.gaps} goalUnset={result.targetSource === "goal_unset"} />}<SkillCards key={`${employee.employee_id}-${planning.revision}`} skills={data.skills.map(skill => {
+      const gap = result.gaps.find(item => item.id === skill.skill_id);
+      const inProgress = history.some(row => row.status === "in_progress" && data.events.find(event => event.event_id === row.event_id)?.develops_skills.some(gain => gain.skill_id === skill.skill_id));
+      return { id: skill.skill_id, name: skill.name, level: result.skills[skill.skill_id] ?? 0, assessed: employee.skills[skill.skill_id] ?? 0, assessmentRecorded: Object.hasOwn(employee.skills, skill.skill_id), required: gap?.required ?? null, critical: gap?.critical ?? false, closed: gap?.closed ?? false, inProgress };
+    }).sort((a, b) => Number(b.critical) - Number(a.critical) || Number(a.closed) - Number(b.closed))} goal={result.target ? `${t(result.target.target_grade)} · ${t(result.target.target_role)}` : null} assessmentDate={employee.last_review_date} /></>}
+    {active === "history" && <div className="workspace-content">    <section id="history">
+    <Card><CardHeader><CardTitle>{t("Participation history ·")} {formatNumber(history.length)}</CardTitle></CardHeader><CardContent><ol className="space-y-3">{history.map(row => <li key={row.record_id} className="flex gap-3 rounded-xl border bg-brand-paper/40 p-4"><span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${row.status === "completed" ? "bg-emerald-600" : row.status === "in_progress" ? "bg-brand-gold" : "bg-slate-300"}`} aria-hidden="true"/><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="text-sm font-semibold">{t(names.get(row.event_id))}</h3><time className="text-xs text-muted-foreground" dateTime={row.date}>{formatDate(row.date)}</time></div><div className="mt-2 flex items-center justify-between gap-2 text-xs"><span>{t(row.status)}</span><span>{t("Progress")}: {formatNumber(row.completion_pct)}%</span></div><progress className="skill-progress mt-2" aria-label={`${t(names.get(row.event_id))} · ${t("Progress")}`} value={row.completion_pct} max={100}/></div></li>)}</ol>{!history.length && <p>{t("No participation records yet.")}</p>}</CardContent></Card>
+    </section></div>}
+    {active === "reviews" && isHR && <ReviewPanel employeeId={employee.employee_id} editable={false} skills={data.skills}/>}
   </>;
 }

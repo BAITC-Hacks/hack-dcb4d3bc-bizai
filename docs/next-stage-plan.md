@@ -26,6 +26,14 @@ The immediate dependency is the assessment/evidence contract and manager access,
 
 The old status sentence saying nothing had been committed was stale and is corrected. Implementation status records separate foundation and localization verification runs; neither is a test of the proposed review workflows.
 
+## Implementation checkpoint
+
+Goal/plan work from slice 1 has started: persistent multiple goals, focus selection, editable milestones, no inferred next-grade target, and imported-assessment module counts are implemented. See the latest implementation-status entry for validation and limitations. Continue with review contracts, scoped manager access and approved per-skill observations; the slice-1 exit criteria are not yet fully met. The findings table above records the pre-implementation review.
+
+On-demand AI assistance is now implemented for employee goal clarification and candidate selection, catalog explanations and HR discussion briefs. Responses and evidence persist, and goal drafts require employee adoption. Factual statements are rendered from source values. This provides part of slice 2, but does not implement quarterly calibration, manager approvals or the complete evidence consultation workflow. A minimal persisted duration/format confirmation gate now blocks premature recommendations; arbitrary free-text constraints still require AI clarification. See [AI assistance](ai-assistance.md).
+
+Quarterly review records and read-only direct-manager inspection are now implemented. Employees can open one cycle per completed quarter, save partial drafts, submit all target skills with justifications, and reopen a submission as a new revision. Target requirements and submitted evidence are preserved; reset isolates prior review scopes. Continue with bounded calibration, manager decisions and per-skill approved overlays. No submitted review is yet calibrated or approved by this implementation.
+
 ## Ordered delivery slices
 
 ### 1. Establish assessment, goal and plan state

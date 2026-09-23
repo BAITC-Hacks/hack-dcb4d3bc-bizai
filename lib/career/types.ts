@@ -45,7 +45,13 @@ export type Employee = z.infer<typeof employeeSchema>;
 export type Event = z.infer<typeof eventSchema>;
 export type History = z.infer<typeof historySchema>;
 export type RoleProfile = z.infer<typeof roleSchema>;
+export type DemoCompletion = {
+  id: string; employee_id: string; event_id: string; completed_at: string; business_date: string;
+  gains: Event["develops_skills"]; before: Record<string, number>; after: Record<string, number>;
+};
 export type Dataset = {
+  proficiency_scale?: Record<string, string>;
+  demo_completions?: DemoCompletion[];
   meta: z.infer<typeof metaSchema>;
   employees: Employee[]; events: Event[]; skills: z.infer<typeof skillSchema>[];
   role_profiles: RoleProfile[]; history: History[];
