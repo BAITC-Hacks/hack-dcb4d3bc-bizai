@@ -106,3 +106,14 @@ Replaced the form-style advisor with a dedicated chat surface: prominent header,
 The existing endpoint now supports SSE via the Accept header while retaining JSON clients. It streams processing status immediately and emits text/result only after grounding, revision checks and persistence. Raw model tokens are withheld, and no artificial typing timer is used. Cancellation reaches the provider; the UI restores the draft and ignores late replies. Stop/Send use distinct DOM keys and prevented default submission so a pointer click on Stop cannot accidentally resubmit the message.
 
 Verification: 37 unit tests, 40 assistant HTTP checks, 260 application HTTP requests and production build/type/lint checks pass. Unit coverage includes arbitrary UTF-8 chunk boundaries, status before result, stale-result rejection, cancellation cleanup and incomplete streams. Headless Chrome verified desktop/mobile layouts, actual SSE fallback, shared history between full page/widget, navigation while open, minimize/full view, HR subject selection, Shift+Enter, real-pointer Stop without duplicate submission and preferences saving. Screenshots were visually inspected; mobile widget bounds fit a 390×844 viewport. These tests used an isolated database with OpenAI disabled, not live-model latency measurements.
+
+
+## HR and manager decisions — 2026-09-23
+
+Supersedes the review foundation's read-only limitation: HR or the current direct line manager can approve/return submissions. Explicit per-skill final ratings and a comment are required for approval; return requires a comment. Original statements and frozen evidence remain immutable, and decisions record the actor and reviewed submission. AI calibration is still `not_run`, visibly disclosed in the form.
+
+A single SQLite transaction stores the decision, reviewed-skill assessment overlays, and idempotency result. Approved cutoffs absorb included gains without dropping unreviewed baselines or later demo completions. Development and advisor evidence consume the overlays; approval invalidates stale advisor context. Grade/promotion and raw imports remain unchanged. Stale assessment approvals and self/unrelated-employee decisions are rejected.
+
+Validation: 41 unit tests, 41 review HTTP checks, 40 assistant HTTP checks, 260 general HTTP requests, and production build passed.
+
+Browser verification passed against an isolated database: HR return → employee reopen/resubmit → HR approval of all 15 E0001 target skills. Approval starts disabled until explicit final ratings and a comment are supplied. The user’s actual review was left untouched.

@@ -9,7 +9,7 @@ import { repository } from "@/lib/server/repository";
 import { getActor } from "@/lib/server/session";
 import { focusTarget } from "@/lib/career/planning";
 import { getI18n } from "@/lib/i18n/server";
-import { development } from "@/lib/career/skills";
+import { development, skillAssessments } from "@/lib/career/skills";
 import type { Dataset, Employee } from "@/lib/career/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -22,6 +22,8 @@ export async function DevelopmentPanel({ employee, data, view = "overview" }: { 
   employee = data.employees.find(item => item.employee_id === employee.employee_id)!;
   const planning = store.planning(employee.employee_id);
   const result = development({ ...employee, career_goal: focusTarget(planning.plan) }, data);
+  const assessments = skillAssessments(employee, data);
+  const latestApproval = [...assessments.observations.values()].map(a => a.approvedAt.slice(0, 10)).sort().at(-1);
   const history = data.history.filter(row => row.employee_id === employee.employee_id).sort((a, b) => b.date.localeCompare(a.date));
   const names = new Map(data.events.map(event => [event.event_id, event.title]));
 
@@ -33,7 +35,7 @@ export async function DevelopmentPanel({ employee, data, view = "overview" }: { 
   const critical = result.gaps.filter(g => g.critical && !g.closed);
   const href = (section: string) => `${base}?view=${section}`;
   return <>
-    <header className="page-heading"><div><p className="eyebrow">{isHR ? t("Employee record") : t("My development")}</p><h1>{isHR ? employee.full_name : t(tabs.find(([id]) => id === active)![1])}</h1><p className="mt-2 text-sm text-muted-foreground">{employee.full_name} <span className="px-2 text-slate-300">/</span> {t(employee.role)} · {t(employee.grade)}</p></div><span className="status-pill">{t("Assessment:")} {formatDate(employee.last_review_date)}</span></header>
+    <header className="page-heading"><div><p className="eyebrow">{isHR ? t("Employee record") : t("My development")}</p><h1>{isHR ? employee.full_name : t(tabs.find(([id]) => id === active)![1])}</h1><p className="mt-2 text-sm text-muted-foreground">{employee.full_name} <span className="px-2 text-slate-300">/</span> {t(employee.role)} · {t(employee.grade)}</p></div><span className="status-pill">{t(latestApproval ? "Latest approved review:" : "Assessment:")} {formatDate(latestApproval ?? employee.last_review_date)}</span></header>
     {isHR && <nav className="section-tabs" aria-label={t("Employee record")}>{tabs.map(([id, label]) => <Link key={id} href={href(id)} aria-current={active === id ? "page" : undefined}>{t(label)}</Link>)}</nav>}
     {active === "overview" && <>
       <section className="focus-panel"><div className="min-w-0"><p className="eyebrow">{t("Focus goal")}</p><h2 className="mt-3 text-2xl md:text-3xl">{focusedGoal?.wording || t("What would you like to achieve or change?")}</h2><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{focusedGoal ? t("Turn your goal into a plan, choose a useful next step, and keep evidence of your progress.") : t("Start with a goal in your own words. A role or grade is optional.")}</p><Link className="primary-link mt-6" href={href(focusedGoal ? "advisor" : "plan")}>{t(focusedGoal ? "Find my next step" : "Set a goal")}<ArrowRight className="h-4 w-4"/></Link></div><div className="focus-stat"><span className="text-4xl font-semibold tracking-tight">{result.target ? `${result.closed}/${result.gaps.length}` : "—"}</span><span className="mt-2 text-sm text-muted-foreground">{t("Closed modules")}</span><p className="mt-4 text-xs leading-5 text-muted-foreground">{t("Assessment evidence closes modules. Promotion remains a separate decision.")}</p>{result.target && <progress className="skill-progress mt-4" value={result.closed} max={result.gaps.length} aria-label={t("Closed modules")}/>}</div></section>
@@ -49,7 +51,7 @@ export async function DevelopmentPanel({ employee, data, view = "overview" }: { 
     {active === "skills" && <><div className="context-strip">{result.target ? `${t(result.target.target_role)} · ${t(result.target.target_grade)} · ${result.closed}/${result.gaps.length} ${t("Closed modules")}` : t("Choose a target to compare requirements")}</div>{result.target && <DevelopmentFlow current={{ role: employee.role, grade: employee.grade }} target={{ role: result.target.target_role, grade: result.target.target_grade }} gaps={result.gaps} goalUnset={result.targetSource === "goal_unset"} />}<SkillCards key={`${employee.employee_id}-${planning.revision}`} skills={data.skills.map(skill => {
       const gap = result.gaps.find(item => item.id === skill.skill_id);
       const inProgress = history.some(row => row.status === "in_progress" && data.events.find(event => event.event_id === row.event_id)?.develops_skills.some(gain => gain.skill_id === skill.skill_id));
-      return { id: skill.skill_id, name: skill.name, level: result.skills[skill.skill_id] ?? 0, assessed: employee.skills[skill.skill_id] ?? 0, assessmentRecorded: Object.hasOwn(employee.skills, skill.skill_id), required: gap?.required ?? null, critical: gap?.critical ?? false, closed: gap?.closed ?? false, inProgress };
+      return { id: skill.skill_id, name: skill.name, level: result.skills[skill.skill_id] ?? 0, assessed: assessments.values[skill.skill_id] ?? 0, assessmentRecorded: Object.hasOwn(assessments.values, skill.skill_id), approvedAt: assessments.observations.get(skill.skill_id)?.approvedAt, reviewId: assessments.observations.get(skill.skill_id)?.reviewId, required: gap?.required ?? null, critical: gap?.critical ?? false, closed: gap?.closed ?? false, inProgress };
     }).sort((a, b) => Number(b.critical) - Number(a.critical) || Number(a.closed) - Number(b.closed))} goal={result.target ? `${t(result.target.target_grade)} · ${t(result.target.target_role)}` : null} assessmentDate={employee.last_review_date} /></>}
     {active === "history" && <div className="workspace-content">    <section id="history">
     <Card><CardHeader><CardTitle>{t("Participation history ·")} {formatNumber(history.length)}</CardTitle></CardHeader><CardContent><ol className="space-y-3">{history.map(row => <li key={row.record_id} className="flex gap-3 rounded-xl border bg-brand-paper/40 p-4"><span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${row.status === "completed" ? "bg-emerald-600" : row.status === "in_progress" ? "bg-brand-gold" : "bg-slate-300"}`} aria-hidden="true"/><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="text-sm font-semibold">{t(names.get(row.event_id))}</h3><time className="text-xs text-muted-foreground" dateTime={row.date}>{formatDate(row.date)}</time></div><div className="mt-2 flex items-center justify-between gap-2 text-xs"><span>{t(row.status)}</span><span>{t("Progress")}: {formatNumber(row.completion_pct)}%</span></div><progress className="skill-progress mt-2" aria-label={`${t(names.get(row.event_id))} · ${t("Progress")}`} value={row.completion_pct} max={100}/></div></li>)}</ol>{!history.length && <p>{t("No participation records yet.")}</p>}</CardContent></Card>

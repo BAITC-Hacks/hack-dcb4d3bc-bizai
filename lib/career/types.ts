@@ -49,7 +49,12 @@ export type DemoCompletion = {
   id: string; employee_id: string; event_id: string; completed_at: string; business_date: string;
   gains: Event["develops_skills"]; before: Record<string, number>; after: Record<string, number>;
 };
+export type ApprovedAssessment = {
+  employeeId: string; skillId: string; value: number; reviewId: string; decisionId: string;
+  quarter: string; evidenceAsOf: string; includedDemoIds: string[]; approvedAt: string; actorId: string;
+};
 export type Dataset = {
+  approved_assessments?: ApprovedAssessment[];
   proficiency_scale?: Record<string, string>;
   demo_completions?: DemoCompletion[];
   meta: z.infer<typeof metaSchema>;
