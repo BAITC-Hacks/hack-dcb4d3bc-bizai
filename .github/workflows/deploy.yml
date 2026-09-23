@@ -1,0 +1,78 @@
+name: Test and deploy BizAI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never interrupt a deployment while SQLite is being backed up or replaced.
+concurrency:
+  group: bizai-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      IMAGE: localhost/site/bizai:${{ github.sha }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build and run type, lint, unit and HTTP tests
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          target: test
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha,scope=bizai-tests
+          cache-to: type=gha,mode=max,scope=bizai-tests
+      - name: Build runtime image
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          target: runner
+          platforms: linux/amd64
+          tags: ${{ env.IMAGE }}
+          load: true
+          push: false
+          provenance: false
+          cache-from: type=gha,scope=bizai-runtime
+          cache-to: type=gha,mode=max,scope=bizai-runtime
+      - name: Transfer image and deploy
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.BIZAI_DEPLOY_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$DEPLOY_SSH_KEY" ]]; then
+            echo 'Missing BIZAI_DEPLOY_SSH_KEY repository secret. See deploy/README.md.' >&2
+            exit 1
+          fi
+          deploy_key="$(mktemp)"
+          trap 'rm -f "$deploy_key"' EXIT
+          chmod 600 "$deploy_key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$deploy_key"
+          {
+            printf '%s\n' "$GITHUB_SHA"
+            docker save "$IMAGE" | gzip -1
+          } | ssh -T -i "$deploy_key" \
+              -o BatchMode=yes -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=deploy/known_hosts \
+              -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=40 \
+              bizai-deploy@92.38.48.67
+      - name: Verify public HTTP
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 http://92.38.48.67/ -o /dev/null

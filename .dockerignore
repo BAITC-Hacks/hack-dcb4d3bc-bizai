@@ -1,0 +1,23 @@
+.git
+.github
+node_modules
+.next
+.data
+coverage
+*.tsbuildinfo
+*.log
+.env*
+.npmrc
+*.pem
+*.key
+.DS_Store
+**/.DS_Store
+._*
+**/._*
+.idea
+.vscode
+# Only the runtime fixtures are needed from the supplied case materials.
+case_source/**
+!case_source/case_1/
+!case_source/case_1/career_quest_dataset/
+!case_source/case_1/career_quest_dataset/**
