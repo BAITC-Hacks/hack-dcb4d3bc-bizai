@@ -98,3 +98,124 @@
 }
 @keyframes chat-pulse { 0%, 80%, 100% { opacity: .35; } 40% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .chat-typing i, .chat-cursor { animation: none; opacity: 1; } }
+
+/* Workflow redesign preview: directional hierarchy, evidence kept in context. */
+@layer components {
+.journey-workspace { @apply space-y-8; }
+.journey-topline { @apply flex items-center justify-between text-[11px] font-semibold tracking-[.15em] text-slate-500; }
+.journey-topline a { @apply flex items-center gap-2 normal-case tracking-normal; }
+.journey-goal { @apply flex flex-wrap items-center justify-between gap-6 border-b border-slate-200 pb-8; }
+.journey-goal h2 { @apply mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight md:text-4xl; }
+.journey-goal p:not(.eyebrow) { @apply mt-4 text-sm text-slate-500; }
+.journey-outline { @apply inline-flex items-center gap-3 rounded-full border bg-white px-5 py-3 text-sm font-medium; }
+.journey-columns { @apply grid items-start gap-7 xl:grid-cols-[minmax(0,1fr)_320px]; }
+.journey-next { @apply rounded-2xl bg-[#153d3a] p-7 text-white md:p-9; }
+.journey-kicker { @apply flex items-center gap-2 text-[10px] font-semibold tracking-[.16em] text-teal-100; }
+.journey-kicker span { @apply h-2 w-2 rounded-full bg-lime-300; }
+.journey-next h2 { @apply mt-5 text-2xl text-white; }
+.journey-next p { @apply mt-3 max-w-lg text-sm leading-6 text-teal-50/80; }
+.journey-button { @apply mt-7 inline-flex items-center gap-4 rounded-lg bg-[#d6f097] px-5 py-3 text-sm font-semibold text-[#173d37]; }
+.journey-section { @apply overflow-hidden rounded-2xl border border-slate-200 bg-white; }
+.journey-section-heading { @apply flex flex-wrap items-center justify-between gap-3 border-b px-6 py-5; }
+.journey-section-heading h2 { @apply text-base; }
+.journey-section-heading a, .journey-section-heading span { @apply flex items-center gap-2 text-xs text-slate-500; }
+.journey-empty { @apply flex flex-col items-start p-7; }
+.journey-empty h3 { @apply mt-4 font-semibold; }
+.journey-empty p { @apply mt-2 max-w-md text-sm leading-6 text-slate-500; }
+.journey-empty a { @apply mt-5 text-sm font-semibold text-teal-800; }
+.journey-steps li { @apply flex items-start gap-4 border-b p-6 last:border-0; }
+.journey-steps li>div { @apply flex-1; }
+.journey-steps h3 { @apply mt-1 font-semibold; }
+.journey-steps p { @apply mt-1 text-sm text-slate-500; }
+.journey-step-number { @apply grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold; }
+.journey-evidence { @apply rounded-2xl border border-[#d7ded3] bg-[#eff2e9] p-6; }
+.journey-count { @apply mt-6 text-5xl font-semibold tracking-tight text-[#264c43]; }
+.journey-count span { @apply text-2xl font-normal text-slate-400; }
+.journey-evidence h3 { @apply mt-3 font-semibold; }
+.journey-evidence p:not(.eyebrow):not(.journey-count) { @apply mt-3 text-sm leading-6 text-slate-600; }
+.journey-evidence a { @apply mt-5 flex items-center justify-between gap-2 border-t border-[#d7ded3] pt-4 text-sm font-semibold text-[#264c43]; }
+.journey-note { @apply p-5; }
+.journey-note h3 { @apply mt-3 text-sm font-semibold; }
+.journey-note p:not(.eyebrow) { @apply mt-2 text-sm leading-6 text-slate-500; }
+.journey-review { @apply flex items-center justify-between gap-3 rounded-xl border bg-white p-5 text-sm font-semibold; }
+.journey-review small { @apply mt-2 block text-xs font-normal leading-5 text-slate-500; }
+.journey-option { @apply border-b p-6 last:border-0; }
+.journey-option h3 { @apply font-semibold; }
+.journey-option p { @apply mt-2 text-sm leading-6 text-slate-500; }
+.journey-option a { @apply mt-4 inline-block text-sm font-semibold text-teal-800; }
+.journey-detail-heading h1 { @apply mt-3 max-w-3xl text-4xl; }
+.journey-detail-heading p:not(.eyebrow) { @apply mt-4 text-sm text-slate-500; }
+.journey-gain { @apply flex justify-between gap-3 border-b py-4 text-sm; }
+}
+
+@layer components {
+.interactive-map { @apply overflow-hidden rounded-2xl border border-slate-200 bg-white; }
+.map-heading { @apply flex flex-wrap items-center justify-between gap-4 p-6; }
+.map-heading h2 { @apply mt-2 flex items-center gap-2 text-xl; }
+.map-heading p:not(.eyebrow) { @apply mt-2 text-sm text-slate-500; }
+.map-route { @apply mx-6 flex flex-wrap items-center gap-5 rounded-xl bg-[#eff2e9] p-5; }
+.map-route small { @apply block text-[10px] uppercase tracking-wider text-slate-500; }
+.map-route strong { @apply mt-1 flex items-center gap-2 text-sm; }
+.map-route a { @apply flex-1; }
+.map-route a>span { @apply mt-1 block text-xs text-teal-800 underline; }
+.map-toolbar { @apply flex flex-wrap items-center justify-between gap-3 border-b p-6; }
+.map-toolbar label { @apply flex items-center gap-2 rounded-lg border px-3 py-2; }
+.map-toolbar input { @apply w-40 bg-transparent text-sm outline-none; }
+.map-toolbar>div { @apply flex flex-wrap gap-2; }
+.map-toolbar button { @apply rounded-full border px-3 py-2 text-xs; }
+.map-toolbar button[aria-pressed="true"] { @apply border-teal-800 bg-teal-800 text-white; }
+.map-layout { @apply grid items-start lg:grid-cols-[minmax(0,1fr)_320px]; }
+.map-branches { @apply space-y-5 bg-slate-50/70 p-5; }
+.map-branch h3 { @apply mb-3 flex items-center justify-between text-xs font-semibold; }
+.map-branch h3 span { @apply rounded-full bg-white px-2 py-1 text-slate-500; }
+.map-branch>div { @apply grid gap-2 sm:grid-cols-2; }
+.map-node { @apply min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-teal-600 hover:shadow-sm; }
+.map-node[aria-pressed="true"] { @apply border-teal-700 bg-teal-50 ring-1 ring-teal-700; }
+.map-node strong { @apply text-xs; }
+.map-node-meta { @apply mt-2 flex flex-wrap justify-between gap-1 text-[10px] text-slate-500; }
+.map-node-meta em { @apply not-italic text-violet-700; }
+.map-node progress { @apply mt-3 h-1 w-full; accent-color:#38655a; }
+.map-amber h3 { @apply text-amber-800; }
+.map-blue h3 { @apply text-blue-800; }
+.map-violet h3 { @apply text-violet-800; }
+.map-green h3 { @apply text-emerald-800; }
+.map-footnote { @apply text-[11px] leading-5 text-slate-500; }
+.map-inspector { @apply border-t p-6 lg:sticky lg:top-20 lg:border-l lg:border-t-0; scroll-margin-top:90px; }
+.map-inspector>h3 { @apply mt-3 text-xl font-semibold; }
+.map-levels { @apply my-5 grid grid-cols-3 gap-2; }
+.map-levels small { @apply block text-[10px] text-slate-500; }
+.map-levels strong { @apply mt-2 block text-2xl font-semibold; }
+.map-explanation { @apply mb-3 text-sm leading-6 text-slate-600; }
+.map-activity { @apply mt-3 block rounded-lg border p-3 hover:border-teal-700; }
+.map-activity strong { @apply text-xs; }
+.map-activity span { @apply mt-2 flex items-center justify-between text-[11px] text-teal-800; }
+}
+
+@layer components {
+.flowchart-workspace { @apply relative grid items-start xl:grid-cols-[minmax(0,1fr)_290px]; }
+.flowchart-scroll { @apply min-w-0 overflow-x-auto bg-slate-50 p-5; background-image:radial-gradient(#cbd5e1 1px, transparent 1px); background-size:20px 20px; }
+.flowchart-canvas { min-width:660px; }
+.flowchart-profile { @apply mx-auto flex w-72 flex-col items-center rounded-xl border-2 border-teal-800 bg-white p-4 text-center shadow-sm; }
+.flowchart-profile small { @apply text-[10px] uppercase tracking-widest text-slate-500; }
+.flowchart-profile strong { @apply mt-2 text-sm text-teal-950; }
+.flowchart-profile span { @apply mt-2 text-xs text-slate-500; }
+.flowchart-target { @apply bg-teal-900; }
+.flowchart-target strong { @apply text-white; }
+.flowchart-target small, .flowchart-target span { @apply text-teal-100; }
+.flowchart-trunk { @apply relative mx-auto h-9 w-px bg-slate-400; }
+.flowchart-trunk::after { content:""; position:absolute;bottom:0;left:-3px;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid #94a3b8; }
+.flowchart-branches { @apply relative grid items-stretch gap-4 space-y-0 bg-transparent p-0; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
+.flowchart-branch { @apply relative flex flex-col border-y border-slate-400 pb-7 pt-7; }
+.flowchart-branch::before, .flowchart-branch::after { content:"";position:absolute;left:50%;width:1px;height:28px;background:#94a3b8; }
+.flowchart-branch::before {top:0;} .flowchart-branch::after {bottom:0;}
+.flowchart-branch h3 { @apply relative z-10 mb-0 rounded-lg border bg-white px-3 py-3 text-[11px] shadow-sm; }
+.flowchart-branch>div { @apply relative flex flex-1 flex-col gap-3 border-x-0 px-1 py-5; }
+.flowchart-branch>div::before {content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;background:#cbd5e1;}
+.flowchart-branch .map-node { @apply relative z-10 w-full p-3; }
+.flowchart-inspector { @apply hidden bg-white xl:block; }
+.flowchart-close { @apply mb-5 text-sm font-semibold text-teal-800 xl:hidden; }
+.flowchart-backdrop { @apply fixed inset-0 z-40 bg-slate-950/40 xl:hidden; }
+.flowchart-inspector-open { @apply fixed inset-x-3 bottom-3 top-24 z-50 block overflow-y-auto rounded-2xl border shadow-xl xl:sticky xl:inset-auto xl:top-20 xl:z-auto xl:rounded-none xl:border-0 xl:shadow-none; }
+}
+
+@layer components { .flowchart-branches { @apply border-y border-slate-400; } .flowchart-branch { @apply border-y-0; } }

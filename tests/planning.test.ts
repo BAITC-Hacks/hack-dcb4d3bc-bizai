@@ -55,3 +55,19 @@ test("course gains can meet a threshold without closing an assessment module", (
   assert.equal(result.gaps[0].closed, false); assert.equal(result.coverage, 0);
   assert.equal(development({ ...profile, career_goal: null }, fixture).coverage, null);
 });
+
+
+test("linked activities persist without changing assessment facts and reject unknown references", () => {
+  const store = new SqliteRepository(":memory:");
+  try {
+    const before = store.read();
+    const plan = structuredClone(freePlan);
+    plan.milestones[0].activityIds = [data.events[0].event_id];
+    store.savePlanning(actor, employee.employee_id, 1, 0, plan);
+    assert.deepEqual(store.planning(employee.employee_id).plan.milestones[0].activityIds, [data.events[0].event_id]);
+    assert.deepEqual(store.read(), before);
+    plan.milestones[0].activityIds = ["unknown-event"];
+    assert.throws(() => store.savePlanning(actor, employee.employee_id, 1, 1, plan), /Unknown activity reference/);
+    assert.equal(store.planning(employee.employee_id).revision, 1);
+  } finally { store.close(); }
+});

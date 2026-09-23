@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return Response.json(repository().savePlanning(actor, actor.employeeId, input.datasetRevision, input.revision, input.plan));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Save failed";
-    const invalid = error instanceof z.ZodError || /Unknown target role profile|Edited goals/.test(message);
+    const invalid = error instanceof z.ZodError || /Unknown target role profile|Unknown activity reference|Edited goals/.test(message);
     const status = message.includes("changed;") ? 409 : invalid ? 400 : message === "Employee not found" ? 404 : message === "Forbidden" ? 403 : 500;
     return Response.json({ error: status === 500 ? "Could not save plan" : message }, { status });
   }
