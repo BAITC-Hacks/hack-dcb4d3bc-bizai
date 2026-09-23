@@ -1,4 +1,5 @@
 "use client";
+import { createClientId } from "@/lib/client-id";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,7 +17,7 @@ export function AdoptActivity({ eventId, planning, datasetRevision }: { eventId:
   async function save(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError("");
     const plan = structuredClone(planning.plan);
-    if (selected === "new") plan.milestones.push({ id: crypto.randomUUID(), goalId: plan.focusId!, outcome:outcome.trim(), criterion:criterion.trim(), state:"planned", evidence:"", actions:"", origin:"employee", activityIds:[eventId] });
+    if (selected === "new") plan.milestones.push({ id: createClientId(), goalId: plan.focusId!, outcome:outcome.trim(), criterion:criterion.trim(), state:"planned", evidence:"", actions:"", origin:"employee", activityIds:[eventId] });
     else plan.milestones = plan.milestones.map(m => m.id === selected ? {...m, activityIds:[...new Set([...(m.activityIds ?? []),eventId])]} : m);
     try { const response = await fetch("/api/planning", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({datasetRevision,revision:planning.revision,plan})}); if(!response.ok) {setError(response.status === 409 ? t("Your plan changed. Reload before saving.") : t("Could not save plan"));return;} router.refresh(); } catch {setError(t("Could not save plan"));} finally {setBusy(false);}
   }

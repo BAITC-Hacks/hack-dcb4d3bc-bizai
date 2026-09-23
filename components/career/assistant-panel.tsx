@@ -1,4 +1,5 @@
 "use client";
+import { createClientId } from "@/lib/client-id";
 import { useEffect, useRef, useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import { ConsultationForm } from "./consultation-form";
@@ -61,7 +62,7 @@ export function AssistantPanel({ employeeId, mode, activities = [], compact = fa
   async function ask(text: string) {
     if (!session || busy || !text.trim()) return;
     const activeEpoch = epoch.current;
-    const attempt = submission.current?.message === text ? submission.current : { id: crypto.randomUUID(), message: text };
+    const attempt = submission.current?.message === text ? submission.current : { id: createClientId(), message: text };
     submission.current = attempt;
     const controller = new AbortController(); activeRequest.current = controller;
     setBusy(true); setSending(true); setError(null); setNotice(null); setMessage("");

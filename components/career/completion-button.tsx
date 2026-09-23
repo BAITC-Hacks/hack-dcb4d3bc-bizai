@@ -1,4 +1,5 @@
 "use client";
+import { createClientId } from "@/lib/client-id";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/providers/locale";
@@ -13,7 +14,7 @@ export function CompletionButton({ eventId, datasetRevision, planRevision }: { e
   async function complete() {
     setBusy(true); setError("");
     try {
-      operation.current ??= crypto.randomUUID();
+      operation.current ??= createClientId();
       const response = await fetch("/api/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commandId: operation.current, eventId, datasetRevision, planRevision }) });
       if (!response.ok) { setError(response.status === 409 ? "Context changed. Reload before completing." : "Could not complete. Try again or reload."); return; }
       operation.current = null; router.refresh(); setConfirming(false);

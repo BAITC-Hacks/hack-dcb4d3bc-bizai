@@ -1,4 +1,5 @@
 "use client";
+import { createClientId } from "@/lib/client-id";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/providers/locale";
@@ -78,7 +79,7 @@ function DecisionForm({ review, skills, busy, command }: { review: ReviewCycle; 
   async function decide(action: "approve" | "return") {
     const payload = { action, employeeId: review.employeeId, id: review.id, revision: review.revision, ratings: action === "return" ? [] : review.items.map(item => ({ skillId: item.skillId, finalRating: Number(ratings[item.skillId]) })), comment };
     const fingerprint = JSON.stringify(payload);
-    if (attempt.current?.fingerprint !== fingerprint) attempt.current = { fingerprint, id: crypto.randomUUID() };
+    if (attempt.current?.fingerprint !== fingerprint) attempt.current = { fingerprint, id: createClientId() };
     await command({ ...payload, commandId: attempt.current.id });
   }
   const complete = review.items.every(i => ratings[i.skillId] !== undefined && ratings[i.skillId] !== "");
