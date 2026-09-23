@@ -7,7 +7,7 @@ export function parseLocale(value: unknown): Locale {
   return locales.includes(value as Locale) ? value as Locale : "en";
 }
 const dictionary: Record<string, { ru: string; kk: string }> = messages;
-const englishLabels: Record<string, string> = { completed: "Completed", in_progress: "In progress", no_show: "No show", dropped: "Dropped", declined: "Declined", overdue: "Overdue", self_paced: "Self-paced", online: "Online", offline: "In person", course: "Course", workshop: "Workshop", mentoring: "Mentoring", certification: "Certification", meetup: "Meetup", compliance: "Compliance", onboarding: "Onboarding" };
+const englishLabels: Record<string, string> = { planned: "Planned", evidence_needed: "Evidence needed", reached: "Reached", blocked: "Blocked", paused: "Paused", completed: "Completed", in_progress: "In progress", no_show: "No show", dropped: "Dropped", declined: "Declined", overdue: "Overdue", self_paced: "Self-paced", online: "Online", offline: "In person", course: "Course", workshop: "Workshop", mentoring: "Mentoring", certification: "Certification", meetup: "Meetup", compliance: "Compliance", onboarding: "Onboarding" };
 const intlLocale = { en: "en-GB", ru: "ru-RU", kk: "kk-KZ" };
 export function createI18n(locale: Locale) {
   return {

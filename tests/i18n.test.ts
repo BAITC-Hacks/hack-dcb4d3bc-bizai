@@ -3,6 +3,52 @@ import assert from "node:assert/strict";
 import { createI18n, locales, parseLocale } from "../lib/i18n";
 import messages from "../lib/i18n/messages.json";
 import { loadFixtures } from "../lib/server/database";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import ts from "typescript";
+import { eligibility } from "../lib/career/eligibility";
+
+test("literal UI translation keys have Russian and Kazakh entries", () => {
+  const missing = new Set<string>();
+  function check(expression: ts.Node) {
+    if (ts.isStringLiteral(expression) && !Object.hasOwn(messages, expression.text)) missing.add(expression.text);
+    if (ts.isConditionalExpression(expression)) {
+      check(expression.whenTrue);
+      check(expression.whenFalse);
+    }
+  }
+  function walk(directory: string) {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (/\.tsx?$/.test(path)) {
+        const source = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+        function visit(node: ts.Node) {
+          if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "t") node.arguments.forEach(check);
+          ts.forEachChild(node, visit);
+        }
+        visit(source);
+      }
+    }
+  }
+  for (const directory of ["app", "components", "lib"]) walk(directory);
+  assert.deepEqual([...missing].sort(), [], "Untranslated UI copy");
+});
+
+test("dynamic eligibility reasons and milestone states are localized", () => {
+  const data = loadFixtures();
+  const reasons = new Set(data.employees.flatMap(employee => data.events.flatMap(event => eligibility(employee, event, data))));
+  for (const locale of ["ru", "kk"] as const) {
+    const { t } = createI18n(locale);
+    for (const reason of reasons) assert.notEqual(t(reason), reason, `${locale}: ${reason}`);
+  }
+  for (const locale of locales) {
+    const { t } = createI18n(locale);
+    for (const state of ["planned", "in_progress", "evidence_needed", "reached", "blocked", "paused"]) {
+      assert.notEqual(t(state), state, `${locale}: ${state}`);
+    }
+  }
+});
 
 test("only supported locales are accepted, with English as default", () => {
   for (const locale of locales) assert.equal(parseLocale(locale), locale);
