@@ -3,8 +3,8 @@ import { aiText } from "./copy";
 import type { Advice } from "./contracts";
 import type { AssistantContext } from "./context";
 
-// The model selects evidence and options. Factual sentences are rendered from source
-// values so a valid citation cannot smuggle an invented level, attendance or diagnosis.
+// Keep the conversational opening. Quantitative evidence and recommendation cards
+// are rendered from validated records, independently of the model-authored prose.
 export function presentAdvice(advice: Advice, context: AssistantContext, locale: Locale): Advice {
   const { t, formatNumber, formatDate } = createI18n(locale);
   const say = (key: Parameters<typeof aiText>[1]) => aiText(locale, key);
@@ -50,8 +50,8 @@ export function presentAdvice(advice: Advice, context: AssistantContext, locale:
   if (context.eventId && !used.has(`event:${context.eventId}`)) insights.unshift({ text: factText(`event:${context.eventId}`), evidence_ids: [`event:${context.eventId}`] });
   return {
     ...advice,
-    questions: !context.focus && !advice.goal_draft && !advice.questions.length ? [say("goalQuestion")] : context.mode !== "hr" && context.readiness.reason === "constraints" ? [say("constraintsQuestion"), ...advice.questions.filter(q => q !== say("constraintsQuestion"))].slice(0, 2) : advice.questions,
-    summary: say(!context.focus ? "goalIntro" : context.mode === "hr" ? "hrIntro" : "factsIntro"),
+    summary: advice.summary,
+    questions: advice.questions,
     insights,
     recommendations: advice.recommendations.map(item => {
       const candidate = context.candidates.find(c => c.event_id === item.event_id)!;

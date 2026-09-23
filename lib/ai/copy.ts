@@ -1,6 +1,11 @@
 import type { Locale } from "../i18n";
 
 const copy = {
+  preferenceProposal: ["Here’s what I understood", "Вот как я понял ваши предпочтения", "Қалауыңызды осылай түсіндім"],
+  usePreferences: ["Use these preferences", "Сохранить эти предпочтения", "Осы қалауларды сақтау"],
+  editPreferences: ["Adjust preferences", "Изменить предпочтения", "Қалауларды өзгерту"],
+  preferencesSaved: ["Preferences saved. We can use them to choose your next step.", "Предпочтения сохранены. Теперь можем выбрать следующий шаг.", "Қалаулар сақталды. Енді келесі қадамды таңдай аламыз."],
+  previousPreferences: ["Your preferences changed after this reply. Ask for an updated recommendation.", "После этого ответа предпочтения изменились. Попросите обновить рекомендацию.", "Осы жауаптан кейін қалауларыңыз өзгерді. Жаңартылған ұсынысты сұраңыз."],
   relatedHistory: ["Participation in this activity and activities developing the same skills", "Участие в этой активности и активностях, развивающих те же навыки", "Осы іс-шараға және сол дағдыларды дамытатын іс-шараларға қатысу"],
   alternative: ["Eligible alternative", "Доступная альтернатива", "Қолжетімді балама"],
   criticalGains: ["Critical target gaps improved", "Сокращаемые критические дефициты для цели", "Мақсат үшін қысқаратын маңызды дағды олқылықтары"],

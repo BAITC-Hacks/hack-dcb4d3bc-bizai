@@ -119,3 +119,12 @@ A single SQLite transaction stores the decision, reviewed-skill assessment overl
 Validation: 41 unit tests, 41 review HTTP checks, 40 assistant HTTP checks, 260 general HTTP requests, and production build passed.
 
 Browser verification passed against an isolated database: HR return → employee reopen/resubmit → HR approval of all 15 E0001 target skills. Approval starts disabled until explicit final ratings and a comment are supplied. The user’s actual review was left untouched.
+
+
+## Conversational assistant and read-only tools
+
+Replaced fixed opening templates with model-authored conversational replies and source references. The assistant no longer forces activities into greetings or explanations. Scoped evidence lookup and activity comparison tools run inside the server, with one bounded tool round and a shared 8.5-second deadline. Ratings, approvals, enrollment and completion remain outside its authority.
+
+Learning preferences can now be collected through conversation and offered as an editable inline proposal. Explicit confirmation uses the existing transactional endpoint. Preference changes retain the transcript, mark earlier replies stale, and hide old actionable cards. Live checks with wholly invented data succeeded on six conversation scenarios; the mini model default was retained. Model-authored prose is not guaranteed factually correct merely because references validate; quantitative evidence and recommendation cards remain computed.
+
+Validation: 57 unit tests, production build (lint/type checks included), 40 assistant HTTP checks, 41 review HTTP checks, 260 application HTTP requests, and the browser preference-confirmation/continuity flow passed. See `ai-assistance.md` for scope, tool boundaries and evaluation limits.

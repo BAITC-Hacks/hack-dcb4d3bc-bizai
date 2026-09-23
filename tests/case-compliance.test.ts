@@ -37,9 +37,9 @@ test("related participation survives shortlisting and published advice always in
   assert.match(reason, /Eligible alternative/);
 });
 
-test("ready coaching rejects empty answers while real questions and other modes remain valid", () => {
+test("ready coaching permits conversational replies without forcing recommendations", () => {
   assert.equal(context.readiness.state, "ready");
-  assert.throws(() => validateAdvice(empty, context), /requires 1–3/);
+  assert.equal(validateAdvice({ ...empty, summary: "You’re welcome. Let me know how it goes." }, context).recommendations.length, 0);
   assert.ok(validateAdvice({ ...empty, questions: ["Does this schedule work?"] }, context));
   assert.ok(validateAdvice(empty, { ...context, mode: "hr" }));
   assert.ok(validateAdvice(empty, { ...context, mode: "activity" }));

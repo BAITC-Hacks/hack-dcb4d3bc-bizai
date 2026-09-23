@@ -89,7 +89,8 @@ try {
   assert.equal((await request("/api/assistant/goal", employee, { turnId: staleDraft.id })).status, 409);
   const confirmed = await (await request(query, employee)).json();
   assert.deepEqual(confirmed.consultation, { revision: 1, answers: consultation.answers });
-  assert.deepEqual(confirmed.turns, []);
+  assert.ok(confirmed.turns.some(turn => turn.id === staleDraft.id));
+  assert.ok(confirmed.turns.every(turn => (turn.consultationRevision ?? 0) !== confirmed.consultation.revision));
   assert.equal((await request("/api/assistant", employee, { ...input, id: crypto.randomUUID(), planRevision: goalSession.planRevision })).status, 409);
   const confirmedRequest = { ...input, id: crypto.randomUUID(), planRevision: goalSession.planRevision, consultationRevision: 1 };
   const confirmedTurn = await (await request("/api/assistant", employee, confirmedRequest)).json();

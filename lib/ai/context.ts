@@ -2,23 +2,32 @@ import { constraintReasons, consultationReadiness, emptyConsultation, type Consu
 import { eligibility, audienceContext, audiencePolicyVersion } from "../career/eligibility";
 import { development, skillAssessments } from "../career/skills";
 import { focusTarget, type PlanningState } from "../career/planning";
-import type { Employee, Snapshot } from "../career/types";
+import { grades, type Employee, type Snapshot } from "../career/types";
+import type { ReviewCycle } from "../career/reviews";
 import type { Advice, AssistantMode, Evidence } from "./contracts";
 import { adviceSchema } from "./contracts";
 
-export function buildAssistantContext(snapshot: Snapshot, employee: Employee, planning: PlanningState, mode: AssistantMode, eventId: string | null, consultation: Consultation = emptyConsultation) {
+export function buildAssistantContext(snapshot: Snapshot, employee: Employee, planning: PlanningState, mode: AssistantMode, eventId: string | null, consultation: Consultation = emptyConsultation, reviews: ReviewCycle[] = []) {
   const { data } = snapshot;
   const focus = planning.plan.goals.find(g => g.id === planning.plan.focusId) ?? null;
   const progress = development({ ...employee, career_goal: focusTarget(planning.plan) }, data);
   const assessments = skillAssessments(employee, data);
   const history = data.history.filter(h => h.employee_id === employee.employee_id);
   const facts: Evidence[] = [
-    { id: "profile", label: "Profile", source: `employees.json:${employee.employee_id}`, value: { role: employee.role, grade: employee.grade, work_format: employee.work_format, last_review_date: employee.last_review_date } },
+    { id: "profile", label: "Profile", source: `employees.json:${employee.employee_id}`, value: { ...employee, skills_definition: "Imported baseline only; use skill evidence for approved and effective levels.", career_goal_definition: "Imported goal; the current planning focus is authoritative." } },
     { id: "goal", label: "Focus goal", source: `planning:${employee.employee_id}:${planning.revision}`, value: focus },
     { id: "policy", label: "Calculation rules", source: audiencePolicyVersion, value: { as_of_date: data.meta.as_of_date, eligibility: "Complete current OR explicitly focused target role/grade pair (prototype mobility policy, not enrollment permission); real prerequisites; voluntary, available and not already completed/in progress. EV_036 is repeatable.", skill_gain: "Synthetic catalog rule, not measured competence. Historical dates are completion proxies.", feedback_rating: "Employee rating of the activity, not employee competence.", authority: "Advice cannot change assessed skills, certify a module or promote an employee." } },
   ];
+  const nextGrade = grades[grades.indexOf(employee.grade) + 1];
+  const nextProfile = data.role_profiles.find(p => p.role === employee.role && p.grade === nextGrade) ?? null;
+  facts.push({ id: "career_path", label: "Current role and next listed grade", source: "role_profiles.json;grade_order", value: { current_role: employee.role, current_grade: employee.grade, next_target: nextProfile ? { target_role: nextProfile.role, target_grade: nextProfile.grade } : null, interpretation: "Possible same-role next step, not a selected goal or automatic promotion. Ask about the desired outcome or timeframe, not the known role/grade." } });
+  facts.push({ id: "planning", label: "All career goals and milestones", source: `planning:${employee.employee_id}:${planning.revision}`, value: planning.plan });
+  for (const skill of data.skills) facts.push({ id: `skill:${skill.skill_id}`, label: skill.name, source: `skills.json;computed:${employee.employee_id}`, value: { ...skill, imported: employee.skills[skill.skill_id] ?? null, assessed: assessments.values[skill.skill_id] ?? null, effective: progress.skills[skill.skill_id] ?? null, approved_observation: assessments.observations.get(skill.skill_id) ?? null } });
+  for (const profile of data.role_profiles) facts.push({ id: `role:${profile.role}:${profile.grade}`, label: `${profile.role} · ${profile.grade}`, source: "role_profiles.json", value: profile });
+  facts.push({ id: "proficiency_scale", label: "Skill proficiency scale", source: "proficiency_scale", value: data.proficiency_scale ?? null });
+  for (const review of reviews.filter(r => r.employeeId === employee.employee_id)) facts.push({ id: `review:${review.id}:${review.revision}`, label: `${review.quarter} · ${review.status}`, source: `review:${review.id}:${review.revision}`, value: review });
   for (const gap of progress.gaps) facts.push({ id: `gap:${gap.id}`, label: gap.name, source: `computed:${employee.employee_id}:role_profiles:${progress.target?.target_role}:${progress.target?.target_grade}`, value: { ...gap, assessment_recorded: Object.hasOwn(assessments.values, gap.id), approved_observation: assessments.observations.get(gap.id) ?? null, missing_assessment_policy: "Missing skills compute as zero; absence is not proof of inability." } });
-  for (const milestone of planning.plan.milestones.filter(m => m.goalId === focus?.id).slice(0, 15)) facts.push({ id: `milestone:${milestone.id}`, label: milestone.outcome, source: `planning:${employee.employee_id}:${planning.revision}`, value: milestone });
+  for (const milestone of planning.plan.milestones) facts.push({ id: `milestone:${milestone.id}`, label: milestone.outcome, source: `planning:${employee.employee_id}:${planning.revision}`, value: milestone });
   const activities = data.events.map(event => {
     const reasons = [...eligibility(employee, event, data, focusTarget(planning.plan)), ...constraintReasons(event, consultation)];
     const contributions = event.develops_skills.flatMap(gain => {
@@ -53,10 +62,10 @@ export function buildAssistantContext(snapshot: Snapshot, employee: Employee, pl
     facts.push({ id: `event:${event.event_id}`, label: event.title, source: `events.json:${event.event_id};computed:eligibility:${employee.employee_id}`, value });
     facts.push({ id: `participation:${event.event_id}`, label: event.title, source: `computed:activity_history:${employee.employee_id}:shared_skills:${event.event_id}`, value: event.participation });
   }
+  for (const event of data.events.filter(e => !considered.some(c => c.event_id === e.event_id))) facts.push({ id: `catalog:${event.event_id}`, label: event.title, source: `events.json:${event.event_id}`, value: { ...event, recommendation_policy: "Catalog reference only, not a validated recommendation candidate." } });
   for (const observation of assessments.observations.values()) facts.push({ id: `assessment:${observation.skillId}`, label: "Approved skill assessment", source: `review:${observation.reviewId}:decision:${observation.decisionId}`, value: observation });
   // Preserve the rows behind behavioral patterns, not inferred motives or preferences.
-  const relatedRecordIds = new Set(considered.flatMap(a => a.participation.records.map(row => row.record_id)));
-  const relevantHistory = history.filter(h => relatedRecordIds.has(h.record_id)).sort((a, b) => Number(["no_show", "dropped", "declined"].includes(b.status)) - Number(["no_show", "dropped", "declined"].includes(a.status)) || b.date.localeCompare(a.date)).slice(0, 20);
+  const relevantHistory = [...history].sort((a, b) => b.date.localeCompare(a.date));
   for (const row of relevantHistory) facts.push({ id: `history:${row.record_id}`, label: `${row.event_id} · ${row.status} · ${row.date}`, source: data.demo_completions?.some(c => c.id === row.record_id) ? `demo_completions:${row.record_id}` : `activity_history.csv:${row.record_id}`, value: { ...row, completed_at: data.demo_completions?.find(c => c.id === row.record_id)?.completed_at ?? null, assessment_boundary: assessments.observations.size ? "Approved assessments have per-skill evidence cutoffs and included completion IDs. Use computed levels; never sum these history rows into an approved baseline." : data.demo_completions?.some(c => c.id === row.record_id) ? "Application demo completion after the imported snapshot; gains are already included in effective skills." : row.date <= employee.last_review_date ? "At or before the latest assessment. Already absorbed into the baseline; NEVER add its gains again or infer a newer skill level from it." : "After the assessment; only completed rows contribute to the computed effective levels.", demonstrated_workplace_competence: false } });
   facts.push({ id: "participation", label: "Participation summary", source: `computed:activity_history.csv:${employee.employee_id}`, value: { total: history.length, completed: history.filter(h => h.status === "completed").length, no_show: history.filter(h => h.status === "no_show").length, dropped: history.filter(h => h.status === "dropped").length, declined: history.filter(h => h.status === "declined").length, missing_absence_reasons: true } });
   const readiness = consultationReadiness(Boolean(focus), Boolean(focus?.target), consultation, candidates.length);
@@ -67,15 +76,18 @@ export type AssistantContext = ReturnType<typeof buildAssistantContext>;
 
 export function validateAdvice(input: unknown, context: AssistantContext): Advice {
   const advice = adviceSchema.parse(input);
-  if (context.mode === "hr" && (advice.recommendations.length || advice.goal_draft)) throw new Error("HR briefs cannot propose employee-owned changes");
+  if (context.mode === "hr" && (advice.recommendations.length || advice.goal_draft || advice.consultation_draft)) throw new Error("HR briefs cannot propose employee-owned changes");
   const ids = new Set(context.facts.map(f => f.id));
-  for (const item of [...advice.insights, ...advice.recommendations]) {
+  for (const item of [{ evidence_ids: advice.summary_evidence_ids ?? [] }, ...advice.insights, ...advice.recommendations]) {
     if (new Set(item.evidence_ids).size !== item.evidence_ids.length || item.evidence_ids.some(id => !ids.has(id))) throw new Error("Unsupported evidence reference");
   }
   if (!context.focus && advice.recommendations.length) throw new Error("Clarify the missing goal before recommending");
   if (advice.questions.length && advice.recommendations.length) throw new Error("Resolve questions before recommending");
   if (advice.recommendations.length && context.readiness.state !== "ready") throw new Error("Consultation is not ready");
-  if (context.mode === "coach" && context.readiness.state === "ready" && !advice.questions.length && !advice.recommendations.length) throw new Error("Ready coaching requires 1–3 recommendations or a clarification question");
+  // A proposal with an unresolved question is incomplete; do not offer to save it.
+  if (advice.consultation_draft && advice.questions.length) advice.consultation_draft = null;
+  if (advice.consultation_draft && JSON.stringify(advice.consultation_draft) === JSON.stringify(context.consultation.answers)) advice.consultation_draft = null;
+  if (advice.consultation_draft && advice.recommendations.length) throw new Error("Confirm proposed preferences before recommending");
   const recommended = new Set<string>();
   for (const item of advice.recommendations) {
     const candidate = context.candidates.find(c => c.event_id === item.event_id);

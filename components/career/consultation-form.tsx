@@ -5,7 +5,8 @@ import { useI18n } from "@/components/providers/locale";
 import { aiText } from "@/lib/ai/copy";
 import { activityFormats, type Consultation } from "@/lib/ai/consultation";
 
-export function ConsultationForm({ consultation, datasetRevision, planRevision, disabled, onSaved, onBusy }: {
+export function ConsultationForm({ consultation, datasetRevision, planRevision, disabled, onSaved, onBusy, proposed = false }: {
+  proposed?: boolean;
   consultation: Consultation; datasetRevision: number; planRevision: number; disabled: boolean;
   onSaved: () => void; onBusy: (busy: boolean) => void;
 }) {
@@ -27,7 +28,7 @@ export function ConsultationForm({ consultation, datasetRevision, planRevision, 
   return <form onSubmit={save} className="space-y-3 rounded-xl border bg-brand-paper p-4">
     <fieldset disabled={disabled} className="space-y-3">
       <legend className="text-sm font-semibold">{say("constraintsTitle")}</legend>
-      <p className="text-xs text-muted-foreground">{say(consultation.answers ? "confirmedConstraints" : "constraintsQuestion")}</p>
+      <p className="text-xs text-muted-foreground">{say(proposed ? "preferenceProposal" : consultation.answers ? "confirmedConstraints" : "constraintsQuestion")}</p>
       <label className="block text-xs font-medium">{say("maxHours")}<input type="number" min="0.1" max="10000" step="any" value={hours} onChange={e => setHours(e.target.value)} placeholder={say("unlimited")} className="mt-1 block w-full rounded-lg border bg-white p-2 text-sm"/></label>
       <fieldset><legend className="mb-1 text-xs font-medium">{say("formats")}</legend><div className="flex flex-wrap gap-4">{activityFormats.map(format => <label key={format} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={formats.includes(format)} onChange={e => setFormats(current => e.target.checked ? [...current, format] : current.filter(f => f !== format))}/>{t(format)}</label>)}</div></fieldset>
       <p className="text-xs text-muted-foreground">{say("constraintsHint")}</p>

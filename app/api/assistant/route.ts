@@ -30,7 +30,7 @@ async function contextFor(input: z.infer<typeof selection>) {
   const audit = new AssistantStore();
   let consultation;
   try { consultation = audit.consultation(employee.employee_id, snapshot.revision, planning.revision); } finally { audit.close(); }
-  const context = buildAssistantContext(snapshot, employee, planning, input.mode, input.eventId, consultation);
+  const context = buildAssistantContext(snapshot, employee, planning, input.mode, input.eventId, consultation, store.reviews(actor!, employee.employee_id));
   const cookie = (await cookies()).get(localeCookie)?.value;
   const locale = cookie ? parseLocale(cookie) : employee.preferred_language;
   return { context, locale, scope: actor!.accessRole === "hr" ? "hr" : `employee:${employee.employee_id}` };
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     if (!current) return new Response("Forbidden", { status: 403 });
     audit = new AssistantStore();
     const { context, scope, locale } = current;
-    return Response.json({ turns: audit.history(scope, input.employeeId, context.datasetRevision, context.planRevision, input.mode, input.eventId, context.consultation.revision), datasetRevision: context.datasetRevision, planRevision: context.planRevision, locale, consultation: context.consultation, readiness: context.readiness, configured: Boolean(process.env.OPENAI_API_KEY) }, { headers: { "Cache-Control": "no-store" } });
+    return Response.json({ turns: audit.conversation(scope, input.employeeId, context.datasetRevision, context.planRevision, input.mode, input.eventId), datasetRevision: context.datasetRevision, planRevision: context.planRevision, locale, consultation: context.consultation, readiness: context.readiness, configured: Boolean(process.env.OPENAI_API_KEY) }, { headers: { "Cache-Control": "no-store" } });
   } catch { return Response.json({ error: "Invalid request" }, { status: 400 }); }
   finally { audit?.close(); }
 }
@@ -73,31 +73,33 @@ export async function POST(request: Request) {
     }
     if (pending.has(scope) || audit.limited(scope)) return Response.json({ error: "Please wait" }, { status: 429 });
     lock = scope; pending.add(scope);
-    const history = audit.history(scope, input.employeeId, context.datasetRevision, context.planRevision, input.mode, input.eventId, context.consultation.revision);
+    const history = audit.conversation(scope, input.employeeId, context.datasetRevision, context.planRevision, input.mode, input.eventId);
     // Only this authorized conversation is reused; old dataset/plan revisions cannot bleed in.
-    const messages = history.slice(-3).flatMap(turn => [{ role: "user" as const, content: turn.message }, { role: "assistant" as const, content: JSON.stringify(turn.advice) }]);
+    const messages = history.slice(-6).flatMap(turn => [{ role: "user" as const, content: turn.message }, { role: "assistant" as const, content: JSON.stringify({ ...turn.advice, previous_preferences: (turn.consultationRevision ?? 0) !== context.consultation.revision }) }]);
     messages.push({ role: "user", content: input.message });
-    for (const turn of [...history.slice(-3), { id: input.id, message: input.message }]) context.facts.push({ id: `statement:${turn.id}`, label: "Attributed chat statement", source: `chat:${scope}:${turn.id}`, value: { text: turn.message, verified: false } });
+    for (const turn of [...history.slice(-6), { id: input.id, message: input.message }]) context.facts.push({ id: `statement:${turn.id}`, label: "Attributed chat statement", source: `chat:${scope}:${turn.id}`, value: { text: turn.message, verified: false } });
     async function generate(emit: (event: ChatEvent) => void, signal: AbortSignal) {
       signal.throwIfAborted();
       emit({ type: "status", phase: "thinking" });
       let advice: Advice;
       let reason: AssistantResult["reason"] = null;
       let model: string | null = null;
+      let toolCalls: NonNullable<AssistantResult["toolCalls"]> = [];
       try {
         const generated = await requestAdvice(context, messages, locale, { timeoutMs: Math.max(100, Math.min(8500, 9500 - (Date.now() - started))), signal });
         signal.throwIfAborted();
         emit({ type: "status", phase: "validating" });
-        advice = presentAdvice(generated.advice, context, locale); model = generated.model;
+        advice = presentAdvice(generated.advice, context, locale); model = generated.model; toolCalls = generated.toolCalls;
       } catch (error) {
         signal.throwIfAborted();
         reason = error instanceof ProviderError ? error.reason : "unavailable";
+        toolCalls = error instanceof ProviderError ? error.toolCalls : [];
         advice = { summary: aiText(locale, "fallback"), questions: !context.focus ? [aiText(locale, "goalQuestion")] : context.readiness.reason === "constraints" ? [aiText(locale, "constraintsQuestion")] : [], insights: [], recommendations: [], goal_draft: null };
       }
       const result: AssistantResult = {
         id: input.id, createdAt: new Date().toISOString(), message: input.message, advice,
-        engine: reason ? "rules" : "openai", reason,
-        state: !context.focus ? "needs_goal" : context.readiness.reason === "constraints" && input.mode !== "hr" ? "needs_input" : advice.questions.length ? "needs_input" : advice.recommendations.length ? "ready" : advice.insights.length ? "explained" : "no_match",
+        engine: reason ? "rules" : "openai", reason, toolCalls,
+        state: !reason && !advice.questions.length && !advice.consultation_draft && !advice.goal_draft && !advice.recommendations.length ? "explained" : !context.focus ? "needs_goal" : context.readiness.reason === "constraints" && input.mode !== "hr" ? "needs_input" : advice.questions.length ? "needs_input" : advice.recommendations.length ? "ready" : advice.insights.length ? "explained" : "no_match",
         evidence: context.facts, activities: context.candidates.map(c => ({ id: c.event_id, title: c.title })),
         consultationRevision: context.consultation.revision, readiness: context.readiness,
         datasetRevision: context.datasetRevision, planRevision: context.planRevision, locale, mode: input.mode, eventId: input.eventId, model, latencyMs: Date.now() - started,

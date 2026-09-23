@@ -54,11 +54,17 @@ export class AssistantStore {
     const rows = this.db.prepare("SELECT payload FROM assistant_turns WHERE scope = ? AND employee_id = ? AND dataset_revision = ? AND plan_revision = ? AND mode = ? AND event_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 6").all(scope, employeeId, datasetRevision, planRevision, mode, eventId ?? "") as { payload: string }[];
     return rows.reverse().map(row => JSON.parse(row.payload) as AssistantResult).filter(turn => (turn.consultationRevision ?? 0) === consultationRevision);
   }
+  conversation(scope: string, employeeId: string, datasetRevision: number, planRevision: number, mode: string, eventId: string | null): AssistantResult[] {
+    const rows = this.db.prepare("SELECT payload FROM assistant_turns WHERE scope = ? AND employee_id = ? AND dataset_revision = ? AND plan_revision = ? AND mode = ? AND event_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 6").all(scope, employeeId, datasetRevision, planRevision, mode, eventId ?? "") as { payload: string }[];
+    return rows.reverse().map(row => JSON.parse(row.payload) as AssistantResult);
+  }
   latestEmployeeDecisions(): Map<string, AssistantResult & { consultationStale: boolean }> {
     const rows = this.db.prepare("SELECT employee_id, payload FROM assistant_turns WHERE scope = 'employee:' || employee_id AND mode IN ('coach', 'activity') ORDER BY created_at DESC, rowid DESC").all() as { employee_id: string; payload: string }[];
     const latest = new Map<string, AssistantResult & { consultationStale: boolean }>();
     for (const row of rows) if (!latest.has(row.employee_id)) {
       const turn = JSON.parse(row.payload) as AssistantResult;
+      // Small talk must not replace a still-current development recommendation.
+      if (!turn.reason && ["conversation", "explain"].includes(turn.advice.intent ?? "") && !turn.advice.recommendations.length && !turn.advice.goal_draft && !turn.advice.consultation_draft) continue;
       latest.set(row.employee_id, { ...turn, consultationStale: this.consultation(row.employee_id, turn.datasetRevision, turn.planRevision).revision !== (turn.consultationRevision ?? 0) });
     }
     return latest;

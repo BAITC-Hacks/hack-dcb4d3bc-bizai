@@ -35,7 +35,8 @@ test("assistant context only exposes subject evidence and useful eligible candid
 test("missing and unmapped goals cannot receive invented catalog recommendations", () => {
   const missing = buildAssistantContext({ revision: 1, data }, employee, { revision: 0, plan: initialPlan(employee) }, "coach", null);
   assert.equal(missing.focus, null); assert.deepEqual(missing.candidates, []);
-  assert.ok(presentAdvice(validateAdvice(base, missing), missing, "en").questions.length);
+  assert.equal(presentAdvice(validateAdvice(base, missing), missing, "en").summary, base.summary);
+  assert.deepEqual(presentAdvice(validateAdvice(base, missing), missing, "en").questions, []);
   assert.ok(validateAdvice({ ...base, questions: ["What do you want to achieve?"] }, missing));
   const freePlan = { revision: 1, plan: { ...planning.plan, goals: [{ id: "free", wording: "Deliver a clear presentation", target: null, origin: "employee" as const }], focusId: "free" } };
   assert.deepEqual(buildAssistantContext({ revision: 1, data }, employee, freePlan, "coach", null).candidates, []);
@@ -73,9 +74,10 @@ test("provider uses strict Responses output, disables storage and validates retu
 test("published facts cannot turn absent assessments into inability or invent historical gains", () => {
   const withoutCloudAssessment = { ...withGoal, skills: Object.fromEntries(Object.entries(withGoal.skills).filter(([id]) => id !== "SK_CLOUD")) };
   const missingContext = buildAssistantContext({ revision: 1, data }, withoutCloudAssessment, planning, "coach", null);
-  const raw = { ...base, summary: "The employee cannot do their job", insights: [{ text: "No cloud experience; historical training raised System Design to 5", evidence_ids: ["gap:SK_CLOUD", "gap:SK_SYSTEM_DESIGN"] }] };
+  const raw = { ...base, summary: "Let’s look at what the records actually tell us.", insights: [{ text: "No cloud experience; historical training raised System Design to 5", evidence_ids: ["gap:SK_CLOUD", "gap:SK_SYSTEM_DESIGN"] }] };
   const published = presentAdvice(validateAdvice(raw, missingContext), missingContext, "en");
   assert.doesNotMatch(JSON.stringify(published), /cannot do their job|No cloud experience|raised System Design to 5/);
+  assert.equal(published.summary, raw.summary);
   assert.match(published.insights[0].text, /No assessment recorded; calculations use zero/);
   assert.match(published.insights[0].text, /Effective level 2/);
 });
