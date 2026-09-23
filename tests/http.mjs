@@ -52,6 +52,31 @@ try {
   assert.equal((await post(employee, { mode: "reset", revision: 1 })).status, 403);
   const hr = await login("hr");
   for (const path of ["/hr/dashboard", "/hr/employees/E0001", "/hr/data"]) assert.equal((await request(path, { headers: { Cookie: hr } })).status, 200);
+  for (const [locale, words] of Object.entries({
+    en: ["Your next chapter.", "Career trajectory", "Development activities", "Development overview", "Data &amp; imports"],
+    ru: ["Ваш следующий этап.", "Карьерная траектория", "Активности для развития", "Обзор развития", "Данные и импорт"],
+    kk: ["Сіздің келесі кезеңіңіз.", "Мансаптық жол", "Дамуға арналған іс-шаралар", "Даму шолуы", "Деректер мен импорт"],
+  })) {
+    for (const [path, session, expected] of [
+      ["/", "", words[0]], ["/employee/dashboard", employee, words[1]],
+      ["/employee/learning", employee, words[2]], ["/hr/dashboard", hr, words[3]],
+      ["/hr/data", hr, words[4]], ["/hr/employees/E0001", hr, words[1]],
+    ]) {
+      const response = await request(path, { headers: { Cookie: `${session}; career_quest_locale=${locale}` } });
+      assert.equal(response.status, 200);
+      const html = await response.text();
+      assert.ok(html.includes(`<html lang="${locale}"`), `Wrong document language: ${path}`);
+      assert.ok(html.includes(expected), `Missing ${locale} translation on ${path}: ${expected}`);
+      if (path === "/employee/learning" && locale === "kk") {
+        assert.ok(html.includes("Ақпараттық қауіпсіздік негіздері"));
+        assert.ok(html.includes("Дағдылардың өсуі"));
+      }
+    }
+  }
+  const fallback = await (await request("/", { headers: { Cookie: "career_quest_locale=invalid" } })).text();
+  assert.ok(fallback.includes('<html lang="en"'));
+  const translatedSearch = await (await request("/hr/dashboard?q=" + encodeURIComponent("Бэкенд"), { headers: { Cookie: `${hr}; career_quest_locale=ru` } })).text();
+  assert.ok(translatedSearch.includes("Marat Yessenov"));
   const dataset = JSON.parse(readFileSync("case_source/case_1/career_quest_dataset/employees.json", "utf8"));
   for (const profile of dataset.employees) {
     const response = await request(`/api/employees/${profile.employee_id}`, { headers: { Cookie: hr } });
@@ -71,7 +96,7 @@ try {
   assert.equal((await post(hr, { mode: "reset", revision: duplicate.revision })).status, 200);
   assert.equal((await request("/api/employees/JURY_TEST", { headers: { Cookie: hr } })).status, 404);
   assert.equal((await request("/employee/assistant", { headers: { Cookie: employee } })).status, 404);
-  console.log(`PASS: six pages, 200 profile API reads, session scope, cross-origin protection, jury preview/import/re-import/reset, retired route.`);
+  console.log(`PASS: six pages in three languages, localized HR search, invalid-locale fallback, 200 profile API reads, session scope, cross-origin protection, jury preview/import/re-import/reset, retired route.`);
   timings.sort((a, b) => a - b);
   console.log(`Local HTTP timings: p95 ${timings[Math.floor(timings.length * 0.95)].toFixed(0)} ms; max ${timings.at(-1).toFixed(0)} ms (${timings.length} requests).`);
 } catch (error) {

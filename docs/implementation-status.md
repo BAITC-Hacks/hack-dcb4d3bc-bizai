@@ -20,7 +20,7 @@ The first slice (the six-route foundation from phases 1–3) now lives at the re
 - Historical completion timestamps remain unavailable. The documented CSV date proxy applies only to historical replay; future completion writes must record their own timestamps.
 - Voluntary non-repeatable duplicate completions are rejected. Mandatory annual compliance repetitions in the supplied history are preserved. Club `EV_036` remains repeatable.
 - Conflicting employee updates require a later explicit replacement workflow; the current importer rejects conflicts and accepts new or identical rows.
-- No live AI calls, completion writes, Docker packaging, full localization or production SSO. Recommendation state is visibly `Not generated`.
+- No live AI calls, completion writes, Docker packaging or production SSO. Recommendation state is visibly `Not generated`.
 - SQLite stores a validated dataset snapshot as JSON for this small dataset. A normalized repository adapter can replace it without moving business logic into the browser.
 
 ## Next slice
@@ -40,3 +40,9 @@ Implement validated multi-factor AI selection/explanation, idempotent participat
 The user requested retaining substantially more of the starter's look and layout. Restored its split landing/role-selector composition, patterned background, full-height grouped sidebar, account header, navy dashboard hero, grade rail, two-column cards, SVG donut, HR KPI cards and gap bars, and tabbed activity-card catalog. Navigation labels and contents use Career Quest; career/HR section shortcuts stay within the six routes. Mobile navigation is collapsible. The original checkout remains untouched.
 
 Activity cards now use a compact tabletop-inspired frame: title/type band, duration badge, skill effects with caps, prerequisite chips, sessions, and eligibility footer. All details remain visible; no expansion control or reward/game logic was added.
+
+## Trilingual interface
+
+English, Russian, and Kazakh are available from a persistent header selector on the landing page and every workspace. Shared translation helpers drive server-rendered pages and client controls; the document language, UTC date-only formatting, and numeric formatting follow the selected locale. All supplied activity titles/descriptions, skills, job roles, departments, grades and statuses are translated. The domain dataset and import/API field values stay untouched. Unknown jury text and raw diagnostic detail remain verbatim.
+
+Verification: 12 domain/localization tests pass; all six routes pass in each language through the HTTP suite (245 requests, including existing access/import checks). Browser verification covers language switching and persistence across navigation.
