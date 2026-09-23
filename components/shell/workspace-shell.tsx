@@ -27,7 +27,7 @@ export function WorkspaceShell({ role, name, position, date, children }: { role:
     { href:"/employee/dashboard",label:"Overview",icon:LayoutDashboard },
     { href:"/employee/dashboard?view=plan",label:"My plan",icon:Target },
     { href:"/employee/dashboard?view=advisor",label:"Development advisor",icon:Sparkles },
-    { href:"/employee/dashboard?view=skills",label:"Skills & strengths",icon:BarChart3 },
+    { href:"/employee/dashboard?view=skills",label:"Development map",icon:BarChart3 },
     { href:"/employee/learning",label:"Activities",icon:GraduationCap },
     { href:"/employee/reviews",label:"Reviews",icon:ClipboardCheck },
     { href:"/employee/dashboard?view=history",label:"Learning history",icon:History }
