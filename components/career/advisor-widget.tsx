@@ -25,6 +25,6 @@ export function AdvisorWidget({ employeeId, employees = [] }: { employeeId: stri
       {!employeeId && <label className="shrink-0 border-b bg-white px-4 py-3 text-xs">{say("widgetSubject")}<select className="mt-1" value={subject} onChange={e => setSubject(e.target.value)}><option value="">—</option>{employees.map(e => <option key={e.id} value={e.id}>{e.name} · {e.id}</option>)}</select></label>}
       {subject ? <AssistantPanel key={subject} employeeId={subject} mode={employeeId ? "coach" : "hr"} compact/> : <div className="grid flex-1 place-items-center bg-slate-50 p-8 text-center text-sm text-muted-foreground">{say("widgetChoose")}</div>}
     </div>}
-    <button ref={launcher} type="button" className="advisor-widget-launcher" aria-label={say(open ? "widgetClose" : "widgetOpen")} aria-expanded={open} aria-controls={mounted ? dialogId : undefined} onClick={() => { setMounted(true); if (open) close(); else setOpen(true); }}><Sparkles size={21}/><span>{say("widgetOpen")}</span><span className="h-2 w-2 rounded-full bg-teal-300"/></button>
+    <button ref={launcher} type="button" className="advisor-widget-launcher" aria-label={say(open ? "widgetClose" : "widgetOpen")} aria-expanded={open} aria-controls={mounted ? dialogId : undefined} onClick={() => { setMounted(true); if (open) close(); else setOpen(true); }}><Sparkles size={21}/><span>{say("widgetOpen")}</span></button>
   </div>;
 }
