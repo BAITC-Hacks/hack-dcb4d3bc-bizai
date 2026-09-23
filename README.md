@@ -20,6 +20,54 @@ npm start
 
 No external service or API key is needed. The server loads fixtures from `case_source/case_1/career_quest_dataset/` on its first request and persists them in `.data/career-quest.sqlite`. Keep the supplied dataset directory available locally; no source data is in public assets. Optional settings are in [.env.example](.env.example); copy to `.env.local` when overriding paths. Set `COOKIE_SECURE=true` when serving over HTTPS. Dataset paths resolve relative to the root working directory.
 
+## Docker
+
+Build from the repository root and run with a persistent SQLite volume:
+
+```sh
+docker build -t career-quest:local .
+docker volume create career-quest-data
+docker run -d --name career-quest \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  --mount type=volume,source=career-quest-data,target=/app/.data \
+  career-quest:local
+```
+
+Run the existing type, lint, unit, and HTTP checks inside the build environment:
+
+```sh
+docker build --target test -t career-quest:test .
+```
+
+Open `http://localhost:3000`. The image uses Node 22, Next.js standalone output,
+and the non-root `node` user (UID/GID 1000). Runtime fixtures are included in the
+image; `.env` files, local databases, and Git metadata are excluded. The HTTP
+health check requests the entry page, including a database read.
+
+The entire `/app/.data` directory must remain writable and persistent, including
+SQLite WAL files. For bind mounts or Kubernetes PVCs, give UID/GID 1000 write
+access (for example, Kubernetes `fsGroup: 1000`). Run one application replica
+with its own SQLite volume; PostgreSQL and MinIO are not integrated in this
+version. Do not mount the PostgreSQL or MinIO data directories into this app.
+For Kubernetes, use `Recreate` deployment strategy when attaching this single
+SQLite volume, and configure HTTP probes on port 3000.
+
+Runtime settings can be passed with `docker run -e KEY=value` or an env file:
+
+| Variable | Container default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3000` | HTTP listen port; update the port mapping if changed |
+| `HOSTNAME` | `0.0.0.0` | Listen on container interfaces |
+| `DATABASE_PATH` | `/app/.data/career-quest.sqlite` | Persistent SQLite file |
+| `DATASET_DIR` | `/app/case_source/case_1/career_quest_dataset` | Seed/reset fixtures |
+| `COOKIE_SECURE` | `false` | Set `true` when the external URL uses HTTPS |
+
+If building on an Apple Silicon Mac for an AMD64 server, use
+`docker buildx build --platform linux/amd64 --load -t career-quest:local .`.
+The container retains the demo account picker described below; containerization
+does not add production identity verification.
+
 ## Implemented
 
 | Route | Behavior |
