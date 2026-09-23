@@ -27,7 +27,19 @@ export function buildAssistantContext(snapshot: Snapshot, employee: Employee, pl
       const after = Math.max(gap.level, Math.min(5, gap.level + gain.gain, gain.max_level));
       return after > gap.level ? [{ skill_id: gap.id, before: gap.level, after, required: gap.required, critical: gap.critical, improvement: Math.min(after - gap.level, gap.gap) }] : [];
     });
-    return { ...event, audienceContext: audienceContext(employee, event, focusTarget(planning.plan)), reasons, contributions, score: contributions.reduce((sum, c) => sum + c.improvement * (c.critical ? 10 : 1), 0) };
+    // Include similar learning, even when the earlier activity is no longer eligible.
+    const relatedEvents = new Set(data.events.filter(other => other.event_id === event.event_id || other.develops_skills.some(gain => event.develops_skills.some(skill => skill.skill_id === gain.skill_id))).map(other => other.event_id));
+    const related = history.filter(row => relatedEvents.has(row.event_id));
+    const participation = {
+      total: related.length,
+      completed: related.filter(row => row.status === "completed").length,
+      no_show: related.filter(row => row.status === "no_show").length,
+      dropped: related.filter(row => row.status === "dropped").length,
+      declined: related.filter(row => row.status === "declined").length,
+      // Counts include every row; retain a bounded sample, with adverse participation first.
+      records: [...related].sort((a, b) => Number(["no_show", "dropped", "declined"].includes(b.status)) - Number(["no_show", "dropped", "declined"].includes(a.status)) || b.date.localeCompare(a.date)).slice(0, 12).map(row => ({ record_id: row.record_id, event_id: row.event_id, status: row.status, date: row.date })),
+    };
+    return { ...event, participation, audienceContext: audienceContext(employee, event, focusTarget(planning.plan)), reasons, contributions, score: contributions.reduce((sum, c) => sum + c.improvement * (c.critical ? 10 : 1), 0) };
   });
   const candidates = focus?.target ? activities.filter(a => !a.reasons.length && a.score > 0).sort((a, b) => b.score - a.score || a.duration_hours - b.duration_hours || a.event_id.localeCompare(b.event_id)).slice(0, 8) : [];
   const selected = eventId ? activities.find(a => a.event_id === eventId) : null;
@@ -39,10 +51,12 @@ export function buildAssistantContext(snapshot: Snapshot, employee: Employee, pl
     // Do not send internal ranking weights or hypothetical gains for excluded activities.
     const value = event.reasons.length ? { event_id: event.event_id, title: event.title, format: event.format, duration_hours: event.duration_hours, reasons: event.reasons, prerequisites: event.prerequisites, target_roles: event.target_roles, target_grades: event.target_grades } : visible;
     facts.push({ id: `event:${event.event_id}`, label: event.title, source: `events.json:${event.event_id};computed:eligibility:${employee.employee_id}`, value });
+    facts.push({ id: `participation:${event.event_id}`, label: event.title, source: `computed:activity_history:${employee.employee_id}:shared_skills:${event.event_id}`, value: event.participation });
   }
   for (const observation of assessments.observations.values()) facts.push({ id: `assessment:${observation.skillId}`, label: "Approved skill assessment", source: `review:${observation.reviewId}:decision:${observation.decisionId}`, value: observation });
   // Preserve the rows behind behavioral patterns, not inferred motives or preferences.
-  const relevantHistory = history.filter(h => considered.some(a => a.event_id === h.event_id) && (h.status !== "completed" || h.date > employee.last_review_date)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
+  const relatedRecordIds = new Set(considered.flatMap(a => a.participation.records.map(row => row.record_id)));
+  const relevantHistory = history.filter(h => relatedRecordIds.has(h.record_id)).sort((a, b) => Number(["no_show", "dropped", "declined"].includes(b.status)) - Number(["no_show", "dropped", "declined"].includes(a.status)) || b.date.localeCompare(a.date)).slice(0, 20);
   for (const row of relevantHistory) facts.push({ id: `history:${row.record_id}`, label: `${row.event_id} · ${row.status} · ${row.date}`, source: data.demo_completions?.some(c => c.id === row.record_id) ? `demo_completions:${row.record_id}` : `activity_history.csv:${row.record_id}`, value: { ...row, completed_at: data.demo_completions?.find(c => c.id === row.record_id)?.completed_at ?? null, assessment_boundary: assessments.observations.size ? "Approved assessments have per-skill evidence cutoffs and included completion IDs. Use computed levels; never sum these history rows into an approved baseline." : data.demo_completions?.some(c => c.id === row.record_id) ? "Application demo completion after the imported snapshot; gains are already included in effective skills." : row.date <= employee.last_review_date ? "At or before the latest assessment. Already absorbed into the baseline; NEVER add its gains again or infer a newer skill level from it." : "After the assessment; only completed rows contribute to the computed effective levels.", demonstrated_workplace_competence: false } });
   facts.push({ id: "participation", label: "Participation summary", source: `computed:activity_history.csv:${employee.employee_id}`, value: { total: history.length, completed: history.filter(h => h.status === "completed").length, no_show: history.filter(h => h.status === "no_show").length, dropped: history.filter(h => h.status === "dropped").length, declined: history.filter(h => h.status === "declined").length, missing_absence_reasons: true } });
   const readiness = consultationReadiness(Boolean(focus), Boolean(focus?.target), consultation, candidates.length);
@@ -61,6 +75,7 @@ export function validateAdvice(input: unknown, context: AssistantContext): Advic
   if (!context.focus && advice.recommendations.length) throw new Error("Clarify the missing goal before recommending");
   if (advice.questions.length && advice.recommendations.length) throw new Error("Resolve questions before recommending");
   if (advice.recommendations.length && context.readiness.state !== "ready") throw new Error("Consultation is not ready");
+  if (context.mode === "coach" && context.readiness.state === "ready" && !advice.questions.length && !advice.recommendations.length) throw new Error("Ready coaching requires 1–3 recommendations or a clarification question");
   const recommended = new Set<string>();
   for (const item of advice.recommendations) {
     const candidate = context.candidates.find(c => c.event_id === item.event_id);
@@ -68,7 +83,7 @@ export function validateAdvice(input: unknown, context: AssistantContext): Advic
     recommended.add(item.event_id);
     if (!candidate.contributions.some(c => c.skill_id === item.skill_id)) throw new Error("Recommendation needs a contributing skill");
     // These links follow from validated IDs and the saved focus, not model-written citations.
-    item.evidence_ids = [...new Set(["goal", "consultation", `event:${item.event_id}`, `gap:${item.skill_id}`, ...item.evidence_ids])];
+    item.evidence_ids = [...new Set(["profile", "goal", "consultation", `event:${item.event_id}`, `gap:${item.skill_id}`, `participation:${item.event_id}`, ...item.evidence_ids])];
   }
   const draft = advice.goal_draft;
   if (draft && ((draft.target_role === null) !== (draft.target_grade === null) || draft.target_role && !context.targets.some(p => p.role === draft.target_role && p.grade === draft.target_grade))) throw new Error("Unknown proposed target");

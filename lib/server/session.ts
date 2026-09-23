@@ -3,11 +3,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { repository } from "./repository";
 import type { Actor } from "./access";
+import { sessionKey } from "./identity";
 
 export const sessionCookie = "career_quest_session";
 export async function getActor(): Promise<Actor | null> {
   const token = (await cookies()).get(sessionCookie)?.value;
-  return token ? repository().session(token) ?? null : null;
+  return token ? repository().session(sessionKey(token)) ?? null : null;
 }
 export async function requireActor(role: "hr" | "employee") {
   const actor = await getActor();

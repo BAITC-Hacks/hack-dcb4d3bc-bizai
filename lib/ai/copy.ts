@@ -1,6 +1,11 @@
 import type { Locale } from "../i18n";
 
 const copy = {
+  relatedHistory: ["Participation in this activity and activities developing the same skills", "Участие в этой активности и активностях, развивающих те же навыки", "Осы іс-шараға және сол дағдыларды дамытатын іс-шараларға қатысу"],
+  alternative: ["Eligible alternative", "Доступная альтернатива", "Қолжетімді балама"],
+  criticalGains: ["Critical target gaps improved", "Сокращаемые критические дефициты для цели", "Мақсат үшін қысқаратын маңызды дағды олқылықтары"],
+  selectedStep: ["selected step", "выбранный шаг", "таңдалған қадам"],
+  closesGaps: ["This step develops skills below your target requirements.", "Этот шаг развивает навыки ниже требований вашей цели.", "Бұл қадам мақсатыңыздың талаптарына жетпейтін дағдыларды дамытады."],
   chatGrounded: ["Connected to your development context", "На основе контекста развития", "Даму контекстіне негізделген"],
   chatContext: ["Context & preferences", "Контекст и предпочтения", "Контекст және қалаулар"],
   closeContext: ["Close context", "Закрыть контекст", "Контексті жабу"],

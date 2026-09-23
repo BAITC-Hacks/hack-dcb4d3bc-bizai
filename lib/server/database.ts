@@ -30,10 +30,22 @@ export class SqliteRepository {
       CREATE TABLE IF NOT EXISTS review_revisions (scope INTEGER NOT NULL, id TEXT NOT NULL, employee_id TEXT NOT NULL, quarter TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(scope, id, revision));
       CREATE INDEX IF NOT EXISTS review_subject ON review_revisions(scope, employee_id, quarter);
       CREATE TABLE IF NOT EXISTS dataset (id INTEGER PRIMARY KEY CHECK(id = 1), revision INTEGER NOT NULL, payload TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS demo_completions (employee_id TEXT NOT NULL, event_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(employee_id, event_id));
+      CREATE TABLE IF NOT EXISTS demo_completions (employee_id TEXT NOT NULL, event_id TEXT NOT NULL, command_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(employee_id, command_id));
       CREATE TABLE IF NOT EXISTS planning (employee_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS planning_actions (id INTEGER PRIMARY KEY, employee_id TEXT NOT NULL, actor_id TEXT NOT NULL, dataset_revision INTEGER NOT NULL, state_revision INTEGER NOT NULL, happened_at TEXT NOT NULL, before_payload TEXT NOT NULL, after_payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, access_role TEXT NOT NULL, employee_id TEXT, expires INTEGER NOT NULL);`);
+    // Migrate in one transaction; preserve completion IDs referenced by approvals.
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const columns = this.db.prepare("PRAGMA table_info(demo_completions)").all() as { name: string }[];
+      if (!columns.some(column => column.name === "command_id")) this.db.exec(`
+        ALTER TABLE demo_completions RENAME TO demo_completions_legacy;
+        CREATE TABLE demo_completions (employee_id TEXT NOT NULL, event_id TEXT NOT NULL, command_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(employee_id, command_id));
+        INSERT INTO demo_completions SELECT employee_id, event_id, json_extract(payload, '$.id'), json_set(payload, '$.command_id', json_extract(payload, '$.id')) FROM demo_completions_legacy ORDER BY rowid;
+        DROP TABLE demo_completions_legacy;
+      `);
+      this.db.exec("COMMIT");
+    } catch (error) { this.db.exec("ROLLBACK"); throw error; }
     if (!this.db.prepare("SELECT id FROM dataset WHERE id = 1").get()) {
       this.db.prepare("INSERT OR IGNORE INTO dataset VALUES (1, 1, ?)").run(JSON.stringify(seed()));
     }
@@ -51,12 +63,13 @@ export class SqliteRepository {
     snapshot.data.history.push(...completions.map(c => ({ record_id: c.id, employee_id: c.employee_id, event_id: c.event_id, date: c.business_date, due_date: null, status: "completed" as const, completion_pct: 100, score: null, feedback_rating: null, assigned_by: "self" as const })));
     return snapshot;
   }
-  completeActivity(actor: Actor, eventId: string, datasetRevision: number, planRevision: number) {
+  completeActivity(actor: Actor, eventId: string, datasetRevision: number, planRevision: number, commandId = `legacy:${datasetRevision}:${planRevision}:${eventId}`) {
     if (actor.accessRole !== "employee" || !actor.employeeId) throw new Error("Forbidden");
     this.db.exec("BEGIN IMMEDIATE");
     try {
       const snapshot = this.read();
-      const previous = snapshot.data.demo_completions!.find(c => c.employee_id === actor.employeeId && c.event_id === eventId);
+      const previous = snapshot.data.demo_completions!.find(c => c.employee_id === actor.employeeId && c.command_id === commandId);
+      if (previous && previous.event_id !== eventId) throw new Error("Context changed; completion ID reused");
       if (previous) { this.db.exec("COMMIT"); return { completion: previous, repeated: true }; }
       const planning = this.planning(actor.employeeId);
       if (snapshot.revision !== datasetRevision || planning.revision !== planRevision) throw new Error("Context changed; reload before completing");
@@ -66,10 +79,10 @@ export class SqliteRepository {
       const reasons = eligibility(employee, event, snapshot.data, focusTarget(planning.plan));
       if (reasons.length) throw new Error("Activity is not eligible for demo completion");
       const before = effectiveSkills(employee, snapshot.data);
-      const completion: DemoCompletion = { id: `demo:${randomUUID()}`, employee_id: employee.employee_id, event_id: eventId, completed_at: new Date().toISOString(), business_date: snapshot.data.meta.as_of_date, gains: event.develops_skills, before: {}, after: {} };
+      const completion: DemoCompletion = { id: `demo:${randomUUID()}`, command_id: commandId, employee_id: employee.employee_id, event_id: eventId, completed_at: new Date().toISOString(), business_date: snapshot.data.meta.as_of_date, gains: event.develops_skills, before: {}, after: {} };
       const after = effectiveSkills(employee, { ...snapshot.data, demo_completions: [...snapshot.data.demo_completions!, completion] });
       for (const gain of event.develops_skills) { completion.before[gain.skill_id] = before[gain.skill_id] ?? 0; completion.after[gain.skill_id] = after[gain.skill_id] ?? 0; }
-      this.db.prepare("INSERT INTO demo_completions VALUES (?, ?, ?)").run(employee.employee_id, eventId, JSON.stringify(completion));
+      this.db.prepare("INSERT INTO demo_completions (employee_id, event_id, command_id, payload) VALUES (?, ?, ?, ?)").run(employee.employee_id, eventId, commandId, JSON.stringify(completion));
       // Existing assistant version checks now reject in-flight/old advice.
       this.db.prepare("UPDATE dataset SET revision = revision + 1 WHERE id = 1").run();
       this.db.exec("COMMIT");

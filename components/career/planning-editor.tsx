@@ -6,7 +6,7 @@ import { draftSchema, type PlanningState, type Plan } from "@/lib/career/plannin
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function PlanningEditor({ initial, datasetRevision, profiles, editable, employeeId }: { employeeId: string; initial: PlanningState; datasetRevision: number; profiles: { role: string; grade: string }[]; editable: boolean }) {
+export function PlanningEditor({ initial, datasetRevision, profiles, editable, employeeId, suggestedTarget }: { employeeId: string; initial: PlanningState; datasetRevision: number; profiles: { role: string; grade: string }[]; editable: boolean; suggestedTarget?: Plan["goals"][number]["target"] }) {
   const { t } = useI18n();
   const router = useRouter();
   const [plan, setPlan] = useState(initial.plan);
@@ -62,6 +62,7 @@ export function PlanningEditor({ initial, datasetRevision, profiles, editable, e
     {dirty && <div role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">{t("Unsaved changes. Focus and target updates apply after saving.")}<Button type="button" className="ml-2" variant="outline" disabled={busy} onClick={() => { setPlan(initial.plan); setSubmitted(false); setMessage(""); }}>{t("Cancel changes")}</Button></div>}
     <p className="mt-2 text-sm text-muted-foreground">{t("Your plan is editable. Milestones are self-reports and do not grant assessed skills.")}</p>
     {!focus && <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{t("What would you like to achieve or change?")}</p>}
+    {!focus && editable && suggestedTarget && <div className="mt-4 rounded-xl border p-4"><p className="text-sm">{t("Optional next-grade goal")}: {t(suggestedTarget.target_role)} · {t(suggestedTarget.target_grade)}</p><p className="mt-2 text-xs text-muted-foreground">{t("Review and save this goal only if it matches your direction.")}</p><Button className="mt-3" type="button" variant="outline" disabled={busy} onClick={() => { const id = crypto.randomUUID(); setPlan({ ...plan, focusId: id, goals: [...plan.goals, { id, wording: `${suggestedTarget.target_grade} ${suggestedTarget.target_role}`, target: suggestedTarget, origin: "employee" }] }); }}>{t("Draft next-grade goal")}</Button></div>}
     <div className="mt-4 space-y-4">
       {plan.goals.length > 0 && <label className="block text-sm">{t("Focus goal")}<select className="mt-1 w-full rounded-lg border bg-white p-2" value={plan.focusId ?? ""} onChange={e => setPlan({ ...plan, focusId: e.target.value })}>{plan.goals.map(g => <option key={g.id} value={g.id}>{g.wording || t("New goal")}</option>)}</select></label>}
     <fieldset disabled={!editable || busy} className="space-y-4 disabled:opacity-80">

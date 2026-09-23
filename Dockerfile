@@ -18,7 +18,7 @@ RUN npm run build
 
 # Optional validation target; test tooling is not copied into the runtime image.
 FROM builder AS test
-RUN npm run typecheck && npm run lint && npm test && npm run test:http
+RUN npm run typecheck && npm run lint && npm test && npm run test:http && npm run test:ai && npm run test:reviews && npm run test:identity
 
 FROM base AS runner
 ENV NODE_ENV=production \

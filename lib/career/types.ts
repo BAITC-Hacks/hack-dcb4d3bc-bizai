@@ -46,6 +46,7 @@ export type Event = z.infer<typeof eventSchema>;
 export type History = z.infer<typeof historySchema>;
 export type RoleProfile = z.infer<typeof roleSchema>;
 export type DemoCompletion = {
+  command_id?: string;
   id: string; employee_id: string; event_id: string; completed_at: string; business_date: string;
   gains: Event["develops_skills"]; before: Record<string, number>; after: Record<string, number>;
 };

@@ -32,9 +32,9 @@ export function presentAdvice(advice: Advice, context: AssistantContext, locale:
       const value = fact.value as { role: string; grade: string };
       return `${say("profile")}: ${t(value.role)} · ${t(value.grade)}.`;
     }
-    if (id === "participation") {
+    if (id === "participation" || id.startsWith("participation:")) {
       const value = fact.value as { completed: number; no_show: number; dropped: number; declined: number };
-      return ["completed", "no_show", "dropped", "declined"].map(status => `${t(status)}: ${formatNumber(value[status as keyof typeof value])}`).join(" · ") + `. ${say("historyLimit")}`;
+      return `${id.startsWith("participation:") ? `${say("relatedHistory")}: ` : ""}` + ["completed", "no_show", "dropped", "declined"].map(status => `${t(status)}: ${formatNumber(value[status as keyof typeof value])}`).join(" · ") + `. ${say("historyLimit")}`;
     }
     if (id.startsWith("milestone:")) return `${t("Outcome")}: ${(fact.value as { outcome: string }).outcome}. ${say("selfReport")}`;
     if (id.startsWith("statement:")) return `${say("statement")}: ${(fact.value as { text: string }).text}. ${say("selfReport")}`;
@@ -59,7 +59,12 @@ export function presentAdvice(advice: Advice, context: AssistantContext, locale:
         const name = context.facts.find(f => f.id === `gap:${change.skill_id}`)?.label ?? change.skill_id;
         return `${t(name)} ${formatNumber(change.before)} → ${formatNumber(change.after)} / ${t("Required")} ${formatNumber(change.required)}${change.critical ? ` · ${t("Critical")}` : ""}`;
       });
-      return { ...item, reason: `${say("prospective")}: ${changes.join("; ")}. ${t(candidate.format)} · ${formatNumber(candidate.duration_hours)} ${t("h")}. ${say("assessmentLimit")}${candidate.audienceContext === "target" ? ` ${say("targetPolicy")}` : ""}` };
+      const target = context.focus!.target!;
+      const alternative = context.candidates.find(other => other.event_id !== candidate.event_id);
+      const comparison = alternative ? ` ${say("alternative")}: ${t(alternative.title)} · ${formatNumber(alternative.duration_hours)} ${t("h")} · ${say("criticalGains")}: ${formatNumber(alternative.contributions.filter(c => c.critical).length)} (${say("selectedStep")}: ${formatNumber(candidate.contributions.filter(c => c.critical).length)}). ${factText(`participation:${alternative.event_id}`)}` : "";
+      return { ...item,
+        evidence_ids: [...new Set([...item.evidence_ids, ...(alternative ? [`event:${alternative.event_id}`, `participation:${alternative.event_id}`] : [])])],
+        reason: `${factText("profile")} ${t("Target")}: ${t(target.target_role)} · ${t(target.target_grade)}. ${say("closesGaps")} ${say("prospective")}: ${changes.join("; ")}. ${t(candidate.format)} · ${formatNumber(candidate.duration_hours)} ${t("h")}. ${factText(`participation:${candidate.event_id}`)}${comparison} ${say("assessmentLimit")}${candidate.audienceContext === "target" ? ` ${say("targetPolicy")}` : ""}` };
     }),
   };
 }

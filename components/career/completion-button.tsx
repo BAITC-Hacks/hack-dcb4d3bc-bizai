@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/providers/locale";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,14 @@ export function CompletionButton({ eventId, datasetRevision, planRevision }: { e
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
+  const operation = useRef<string | null>(null);
   async function complete() {
     setBusy(true); setError("");
     try {
-      const response = await fetch("/api/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventId, datasetRevision, planRevision }) });
+      operation.current ??= crypto.randomUUID();
+      const response = await fetch("/api/completions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commandId: operation.current, eventId, datasetRevision, planRevision }) });
       if (!response.ok) { setError(response.status === 409 ? "Context changed. Reload before completing." : "Could not complete. Try again or reload."); return; }
-      router.refresh(); setConfirming(false);
+      operation.current = null; router.refresh(); setConfirming(false);
     } catch { setError("Could not complete. Try again or reload."); }
     finally { setBusy(false); }
   }

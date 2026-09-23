@@ -9,7 +9,7 @@ const directory = mkdtempSync(join(tmpdir(), "career-http-"));
 const port = process.env.SMOKE_PORT ?? "3101";
 const base = `http://127.0.0.1:${port}`;
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", port], {
-  env: { ...process.env, DATABASE_PATH: join(directory, "test.sqlite"), COOKIE_SECURE: "false" }, stdio: ["ignore", "pipe", "pipe"],
+  env: { ...process.env, AUTH_MODE: "demo", DATABASE_PATH: join(directory, "test.sqlite"), COOKIE_SECURE: "false" }, stdio: ["ignore", "pipe", "pipe"],
 });
 let logs = "";
 child.stdout.on("data", data => { logs += data; });
@@ -91,7 +91,8 @@ try {
     assert.equal(response.status, 200);
     assert.equal((await response.json()).employee.employee_id, profile.employee_id);
   }
-  const complete = (cookie, origin = base) => request("/api/completions", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ eventId: "EV_005", datasetRevision: 1, planRevision: 0 }) });
+  const completionCommandId = crypto.randomUUID();
+  const complete = (cookie, origin = base) => request("/api/completions", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ commandId: completionCommandId, eventId: "EV_005", datasetRevision: 1, planRevision: 0 }) });
   assert.equal((await complete(hr)).status, 403);
   assert.equal((await complete(employee, "https://other.example")).status, 403);
   const completion = await complete(employee);

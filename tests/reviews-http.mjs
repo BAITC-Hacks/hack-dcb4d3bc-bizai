@@ -12,7 +12,7 @@ const repo = new SqliteRepository(path);
 const data = repo.read().data;
 const subject = data.employees.find(e => e.career_goal && e.manager_id);
 const peer = data.employees.find(e => e.employee_id !== subject.employee_id && e.employee_id !== subject.manager_id);
-const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", new URL(base).port], { env: { ...process.env, DATABASE_PATH: path, COOKIE_SECURE: "false", OPENAI_API_KEY: "" }, stdio: ["ignore", "pipe", "pipe"] });
+const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", new URL(base).port], { env: { ...process.env, AUTH_MODE: "demo", DATABASE_PATH: path, COOKIE_SECURE: "false", OPENAI_API_KEY: "" }, stdio: ["ignore", "pipe", "pipe"] });
 let logs = "", count = 0;
 child.stdout.on("data", chunk => { logs += chunk; }); child.stderr.on("data", chunk => { logs += chunk; });
 async function request(url, cookie = "", body, origin = base) {

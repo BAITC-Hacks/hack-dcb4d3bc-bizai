@@ -43,7 +43,7 @@ test("missing and unmapped goals cannot receive invented catalog recommendations
 
 test("advice validation rejects fabricated citations, ineligible choices, unsupported targets and premature recommendations", () => {
   const c = context.candidates[0];
-  const recommendation = { event_id: c.event_id, skill_id: c.contributions[0].skill_id, reason: "Supports the saved target.", evidence_ids: ["goal", "consultation", `event:${c.event_id}`, `gap:${c.contributions[0].skill_id}`] };
+  const recommendation = { event_id: c.event_id, skill_id: c.contributions[0].skill_id, reason: "Supports the saved target.", evidence_ids: ["profile", "goal", "consultation", `event:${c.event_id}`, `gap:${c.contributions[0].skill_id}`, `participation:${c.event_id}`] };
   const valid = { ...base, recommendations: [recommendation] };
   assert.deepEqual(validateAdvice(valid, context), valid);
   assert.throws(() => validateAdvice({ ...valid, questions: ["Any constraints?"] }, context), /Resolve questions/);
@@ -52,8 +52,8 @@ test("advice validation rejects fabricated citations, ineligible choices, unsupp
   assert.throws(() => validateAdvice({ ...base, insights: [{ text: "Invented", evidence_ids: ["other-employee"] }] }, context), /Unsupported evidence/);
   assert.throws(() => validateAdvice({ ...base, recommendations: [{ ...recommendation, skill_id: "SK_MADE_UP" }] }, context), /contributing skill/);
   assert.deepEqual(validateAdvice({ ...base, recommendations: [{ ...recommendation, evidence_ids: [] }] }, context).recommendations[0].evidence_ids, recommendation.evidence_ids);
-  assert.throws(() => validateAdvice({ ...base, goal_draft: { wording: "New role", target_role: "Astronaut", target_grade: "Lead" } }, context), /Unknown proposed/);
-  assert.equal(validateAdvice({ ...base, goal_draft: { wording: context.focus!.wording, target_role: target.target_role, target_grade: target.target_grade } }, context).goal_draft, null);
+  assert.throws(() => validateAdvice({ ...valid, goal_draft: { wording: "New role", target_role: "Astronaut", target_grade: "Lead" } }, context), /Unknown proposed/);
+  assert.equal(validateAdvice({ ...valid, goal_draft: { wording: context.focus!.wording, target_role: target.target_role, target_grade: target.target_grade } }, context).goal_draft, null);
 });
 
 test("provider uses strict Responses output, disables storage and validates returned claims", async () => {
@@ -62,7 +62,7 @@ test("provider uses strict Responses output, disables storage and validates retu
     sent = JSON.parse(init!.body as string);
     return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(base) }] }] });
   };
-  const result = await requestAdvice(context, [{ role: "user", content: "Help" }], "ru", { key: "synthetic-test-key", fetcher });
+  const result = await requestAdvice({ ...context, mode: "activity" }, [{ role: "user", content: "Help" }], "ru", { key: "synthetic-test-key", fetcher });
   assert.deepEqual(result.advice, base);
   assert.equal(sent!.store, false);
   assert.match(sent!.instructions as string, /Russian/);
