@@ -1,12 +1,12 @@
 # Career Quest repository context
 
-Analysis date: 2026-09-23. This document records the supplied requirements, data, and starter implementation. The implementation proposal is in [trimming-plan.md](trimming-plan.md).
+Analysis date: 2026-09-23. This document records the supplied requirements, data, and starter implementation.
 
 **Current status:** this is the pre-implementation analysis. A cleaned root application now implements the first foundation slice; see [implementation status](implementation-status.md). The original nested checkout remains untouched and local-only.
 
 Recommendation: reuse the KMG app's layout and UI primitives, then replace its onboarding domain with Career Quest. The required recommendation engine is not present in the starter.
 
-Latest design priority: dataset-grounded explainability is the product core. Before executing the trimming plan, establish whether initialization can turn a judge's upload into traceable evidence, and whether event-driven state changes can keep that evidence current. See [explainability-design.md](explainability-design.md) for the feasibility findings and open decisions.
+Latest design priority: dataset-grounded explainability is the product core. establish whether initialization can turn a judge's upload into traceable evidence, and whether event-driven state changes can keep that evidence current. See [explainability-design.md](explainability-design.md) for the feasibility findings and open decisions.
 
 Confirmed recommendation policy: career goals and critical gaps first. The agent must ask for a missing goal and any material missing context, record attributed answers through validated handlers, and pass an explicit readiness check before recommending. Keep this as one agent and a small persisted state in the prototype.
 

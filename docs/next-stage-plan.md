@@ -21,7 +21,7 @@ The immediate dependency is the assessment/evidence contract and manager access,
 | Durable consultation/audit state is absent | `lib/server/database.ts` currently creates dataset and session tables | Add the minimum persistent goal, plan, consultation, decision and action records needed for the loop. |
 | AI and completion are not implemented | No relevant API handlers; the UI explicitly shows `Not generated` | These are the central next-stage deliverables, not optional UI enhancements. |
 | Quarterly reviews and manager permissions are new | The actor type has only employee/HR; there are no review/approval records | Add direct-report access, review revisions, per-skill observations and explicit evidence cutoffs before approval writes. |
-| Older sequencing is stale | Trimming plan still describes phases 1–3 as future work | Use this plan for current ordering and retain trimming details as history. |
+| Older sequencing is stale | Some older documents describe phases 1–3 as future work | Use this plan for current ordering. |
 | Latest UI/localization changes are in the working tree | Locale modules, dictionaries, page changes and a new locale test | Preserve them. Recheck compatibility during integration; this review does not certify their runtime behavior. |
 
 The old status sentence saying nothing had been committed was stale; the foundation has a commit. Earlier verification results describe the foundation run, not a fresh test of today's working tree.

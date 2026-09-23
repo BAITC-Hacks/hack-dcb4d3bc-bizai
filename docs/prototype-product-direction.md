@@ -1,6 +1,6 @@
 # Prototype product direction
 
-Confirmed by the user on 2026-09-23. This supersedes conflicting proposals in the earlier corporate discovery checklist and trimming plan. It records product decisions and implementation guidance; the full behavior described here is not implemented yet.
+Confirmed by the user on 2026-09-23. This supersedes conflicting proposals in the earlier corporate discovery checklist. It records product decisions and implementation guidance; the full behavior described here is not implemented yet.
 
 ## Purpose
 

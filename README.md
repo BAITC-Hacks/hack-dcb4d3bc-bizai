@@ -57,7 +57,6 @@ The app uses Next 15.5.26 / React 19.1.9. PostCSS is explicitly overridden to th
 
 - [Implementation status](docs/implementation-status.md)
 - [Repository context](docs/repo-context.md)
-- [Trimming plan](docs/trimming-plan.md)
 
 ## Languages
 
