@@ -23,10 +23,11 @@ Put the key in the ignored `.env` or `.env.local` file, never a `NEXT_PUBLIC_*` 
 ```dotenv
 OPENAI_API_KEY=your-key
 OPENAI_MODEL=gpt-4.1-mini
-OPENAI_TIMEOUT_MS=8500
+# Optional; blank or 0 means no application deadline.
+OPENAI_TIMEOUT_MS=
 ```
 
-Restart the server after changing environment settings. The app uses the [Responses API with strict structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs), native server-side `fetch`, and `store: false`. This disables Responses storage; it is not a claim of zero provider retention. No additional SDK dependency is required. The timeout is capped at 8.5 seconds, leaving time for validation and persistence within the intended 10-second request budget. There are no automatic provider retries. Real deployment latency still needs measurement.
+Restart the server after changing environment settings. The app uses the [Responses API with strict structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs), native server-side `fetch`, and `store: false`. This disables Responses storage; it is not a claim of zero provider retention. No additional SDK dependency is required. There is no default application deadline or fixed browser timeout. Set `OPENAI_TIMEOUT_MS` to a positive integer to opt into a shared provider deadline in milliseconds; blank, zero or invalid values disable it. Stop and disconnect cancellation still propagate to the provider. Hosting/proxy timeouts may still apply. There are no automatic provider retries. Real deployment latency still needs measurement.
 
 Only the subject's relevant role, grade, saved focus/milestones, skill gaps, relevant participation records, candidate activities and a short conversation window are sent. Names, contact information and other employee profiles are omitted from the evidence builder. The employee's own free text can contain information they choose to include. The UI discloses the OpenAI request before submission.
 
@@ -103,7 +104,7 @@ Two [Responses API function tools](https://developers.openai.com/api/docs/guides
 - `inspect_evidence({ ids })`: retrieve up to 12 authorized records.
 - `compare_activities({ event_ids })`: inspect up to three known activities, their actual eligibility and related participation.
 
-Neither tool accepts an employee identity, executes arbitrary code, makes external requests or writes state. Unknown names/IDs fail validation. The server allows one tool round with at most three calls, then requests a final answer with tools disabled. Both model requests share one 8.5-second deadline; no automatic retries. Executed calls are recorded with the saved answer, including when generation subsequently falls back. The existing `gpt-4.1-mini` default remains configurable through `OPENAI_MODEL`.
+Neither tool accepts an employee identity, executes arbitrary code, makes external requests or writes state. Unknown names/IDs fail validation. The server allows one tool round with at most three calls, then requests a final answer with tools disabled. Both model requests share the optional configured deadline; no automatic retries. Executed calls are recorded with the saved answer, including when generation subsequently falls back. The existing `gpt-4.1-mini` default remains configurable through `OPENAI_MODEL`.
 
 When the user states both total activity duration and acceptable formats, the assistant can return `consultation_draft`. The inline proposal supports confirmation or editing and uses the existing version-checked consultation endpoint. It does not save itself. An unresolved follow-up suppresses the proposal; an unchanged proposal is removed. HR cannot propose employee-owned preferences. A new goal still requires separate employee adoption.
 
@@ -117,7 +118,7 @@ Automatic approval review rejected the initial plan to send repository employee 
 
 ### Fast conversational replies
 
-The chat provider defaults to 1–2 short sentences and a 1,200-token output ceiling (previously 1,800). It receives shortlisted activity and participation facts upfront to avoid redundant tool round trips; scoped tools remain available for missing details. The default model remains `gpt-4.1-mini`. The shared 8.5-second deadline, confirmation gates, evidence validation and publication checks are unchanged. This reduces requested output and avoidable lookups, but does not guarantee a fixed response time.
+The chat provider defaults to 1–2 short sentences and a 1,200-token output ceiling (previously 1,800). It receives shortlisted activity and participation facts upfront to avoid redundant tool round trips; scoped tools remain available for missing details. The default model remains `gpt-4.1-mini`. Confirmation gates, evidence validation and publication checks remain in place. The provider deadline is optional through `OPENAI_TIMEOUT_MS`. This reduces requested output and avoidable lookups, but does not guarantee a fixed response time.
 
 ### Complete employee evidence
 

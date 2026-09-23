@@ -70,7 +70,7 @@ export function AssistantPanel({ employeeId, mode, activities = [], compact = fa
     setPendingMessage(text); setStreamText(""); setPhase("checking"); follow.current = true;
     let received = false;
     try {
-      const response = await fetch("/api/assistant", { method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream" }, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]), body: JSON.stringify({ ...attempt, employeeId, mode, eventId: mode === "activity" ? eventId : null, datasetRevision: session.datasetRevision, planRevision: session.planRevision, consultationRevision: session.consultation.revision }) });
+      const response = await fetch("/api/assistant", { method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream" }, signal: controller.signal, body: JSON.stringify({ ...attempt, employeeId, mode, eventId: mode === "activity" ? eventId : null, datasetRevision: session.datasetRevision, planRevision: session.planRevision, consultationRevision: session.consultation.revision }) });
       if (activeEpoch !== epoch.current) return;
       if (!response.ok) { setError(response.status === 409 ? "stale" : response.status === 429 ? "limited" : "error"); return; }
       if (!response.body) throw new Error("No stream");

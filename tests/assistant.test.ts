@@ -110,3 +110,58 @@ test("audit persists scoped evidence and rejects answers after a plan change or 
     assert.equal(audit.history(scope, employee.employee_id, 2, 0, "coach", null).length, 0);
   } finally { audit.close(); repo.close(); rmSync(directory, { recursive: true }); }
 });
+
+test("provider deadlines are optional, uncapped and preserve caller cancellation", async (t) => {
+  const previous = process.env.OPENAI_TIMEOUT_MS;
+  t.after(() => {
+    if (previous === undefined) delete process.env.OPENAI_TIMEOUT_MS;
+    else process.env.OPENAI_TIMEOUT_MS = previous;
+  });
+  const deadlines: number[] = [];
+  const deadlineController = new AbortController();
+  t.mock.method(AbortSignal, "timeout", (ms: number) => {
+    deadlines.push(ms);
+    return deadlineController.signal;
+  });
+  let received: AbortSignal | null | undefined;
+  const receivedSignal = () => received;
+  const fetcher: typeof fetch = async (_url, init) => {
+    received = init?.signal;
+    return Response.json({}, { status: 503 });
+  };
+  const run = (signal?: AbortSignal, timeoutMs?: number) => assert.rejects(
+    requestAdvice(context, [], "en", { key: "test", fetcher, signal, timeoutMs }),
+    (error: unknown) => error instanceof ProviderError && error.reason === "unavailable",
+  );
+  delete process.env.OPENAI_TIMEOUT_MS;
+  await run();
+  assert.equal(received, undefined);
+  assert.deepEqual(deadlines, []);
+
+  for (const value of ["", "0", "invalid", "-1", "1.5"]) {
+    process.env.OPENAI_TIMEOUT_MS = value;
+    await run();
+    assert.equal(received, undefined);
+  }
+  assert.deepEqual(deadlines, []);
+
+  process.env.OPENAI_TIMEOUT_MS = "60000";
+  const caller = new AbortController();
+  await run(caller.signal);
+  assert.deepEqual(deadlines, [60000]);
+  assert.equal(receivedSignal()?.aborted, false);
+  caller.abort();
+  assert.equal(receivedSignal()?.aborted, true);
+
+  await run(undefined, 120000);
+  assert.deepEqual(deadlines, [60000, 120000]);
+  deadlineController.abort(new DOMException("deadline", "TimeoutError"));
+  assert.equal(receivedSignal()?.aborted, true);
+
+  delete process.env.OPENAI_TIMEOUT_MS;
+  const cancellable = new AbortController();
+  await run(cancellable.signal);
+  assert.equal(received, cancellable.signal);
+  cancellable.abort();
+  assert.equal(receivedSignal()?.aborted, true);
+});

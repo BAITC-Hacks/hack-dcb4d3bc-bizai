@@ -29,7 +29,7 @@ Copy `.env.example` to `.env.local` only if a local file does not already exist.
 | `COOKIE_SECURE` | `false` | `true` for external HTTPS; keep false for local HTTP |
 | `OPENAI_API_KEY` | Unset | Optional server-side provider credential |
 | `OPENAI_MODEL` | `gpt-4.1-mini` | Provider model configured by this app |
-| `OPENAI_TIMEOUT_MS` | `8500` | Provider time budget, capped at 8500 ms |
+| `OPENAI_TIMEOUT_MS` | Unset | Optional positive integer deadline in milliseconds; blank/0 disables it; no application cap |
 
 Without a provider key, plans, catalog, reviews and imports remain usable. Requests to the advisor expose an unavailable/fallback state; they do not produce live AI recommendations. See [AI assistance](ai-assistance.md).
 

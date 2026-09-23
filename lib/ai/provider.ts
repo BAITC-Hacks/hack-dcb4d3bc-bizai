@@ -15,12 +15,10 @@ export async function requestAdvice(context: AssistantContext, messages: { role:
   const key = options.key ?? process.env.OPENAI_API_KEY;
   if (!key) throw new ProviderError("not_configured");
   const model = options.model ?? process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
-  const configured = Number(process.env.OPENAI_TIMEOUT_MS ?? 8500);
-  const budget = Number.isFinite(configured) ? Math.max(100, Math.min(configured, 8500)) : 8500;
-  const timeout = Math.min(options.timeoutMs ?? budget, budget);
-  // One shared deadline covers both model calls, tools, and response decoding.
-  const deadline = AbortSignal.timeout(timeout);
-  const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline;
+  const timeout = options.timeoutMs ?? Number(process.env.OPENAI_TIMEOUT_MS ?? 0);
+  // An optional deadline spans both model calls; user cancellation always applies.
+  const deadline = Number.isSafeInteger(timeout) && timeout > 0 ? AbortSignal.timeout(timeout) : undefined;
+  const signal = options.signal && deadline ? AbortSignal.any([options.signal, deadline]) : options.signal ?? deadline;
   const roles = [...new Set(context.targets.map(target => target.role))];
   const responseSchema = adviceSchema.extend({
     intent: z.enum(["conversation", "explain", "clarify", "recommend", "preferences", "goal"]).describe("Classify the LAST USER MESSAGE first. Greeting/thanks = conversation; conceptual question = explain. Neither calls for course suggestions or preference collection."),
@@ -63,14 +61,14 @@ Return the strict JSON contract. Empty arrays and null drafts are the default. P
   const toolCalls: AssistantToolCall[] = [];
   try {
     for (let round = 0; round < 2; round++) {
-      signal.throwIfAborted();
+      signal?.throwIfAborted();
       const response = await (options.fetcher ?? fetch)("https://api.openai.com/v1/responses", {
         method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, signal,
         body: JSON.stringify({ model, store: false, instructions, input, tools: assistantTools(context), tool_choice: round === 0 ? "auto" : "none", parallel_tool_calls: true, max_output_tokens: 1200, text: { format: { type: "json_schema", name: "career_advice", strict: true, schema: z.toJSONSchema(responseSchema) } } }),
       });
       if (!response.ok) throw new ProviderError(response.status === 401 || response.status === 403 ? "authentication" : "unavailable");
       const body = await response.json() as { status?: string; output?: OutputItem[] };
-      signal.throwIfAborted();
+      signal?.throwIfAborted();
       if (body.status !== "completed") throw new ProviderError("invalid_output");
       const calls = body.output?.filter(item => item.type === "function_call") ?? [];
       if (calls.length) {

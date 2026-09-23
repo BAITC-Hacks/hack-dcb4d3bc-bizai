@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       let model: string | null = null;
       let toolCalls: NonNullable<AssistantResult["toolCalls"]> = [];
       try {
-        const generated = await requestAdvice(context, messages, locale, { timeoutMs: Math.max(100, Math.min(8500, 9500 - (Date.now() - started))), signal });
+        const generated = await requestAdvice(context, messages, locale, { signal });
         signal.throwIfAborted();
         emit({ type: "status", phase: "validating" });
         advice = presentAdvice(generated.advice, context, locale); model = generated.model; toolCalls = generated.toolCalls;
